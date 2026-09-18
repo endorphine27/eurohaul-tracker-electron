@@ -14,6 +14,7 @@ const MIN_FONT = 9;
 let fields = {
   time: true, route: true, km_remaining: true, eta: true, cargo: true,
   speed: true, fuel: true, truck_damage: true, trailer_damage: true, odometer: true,
+  rest: true, fuel_range: true, cruise_control: true,
 };
 let showSpeedSign = true;
 
@@ -93,9 +94,12 @@ function buildParts(s) {
   }
   if (fields.speed && s.speedKmh !== null) parts.push(`⏱ ${fmt(s.speedKmh)} km/h`);
   if (fields.fuel && s.fuelPct !== null) parts.push(`⛽ ${s.fuelPct}%`);
+  if (fields.fuel_range && s.fuelRangeKm !== null) parts.push(`🛢 ${fmt(s.fuelRangeKm)} km`);
   if (fields.truck_damage && s.truckDamagePct !== null) parts.push(`🔧 ${s.truckDamagePct}%`);
   if (fields.trailer_damage && s.trailerDamagePct !== null) parts.push(`🚛 ${s.trailerDamagePct}%`);
   if (fields.odometer && s.odometerKm !== null) parts.push(`🧭 ${fmt(s.odometerKm)} km`);
+  if (fields.rest && s.restMinutes !== null) parts.push(`😴 ${fmtEta(s.restMinutes)}`);
+  if (fields.cruise_control && s.cruiseControl) parts.push('✅ CC');
   return parts;
 }
 

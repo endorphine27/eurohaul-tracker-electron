@@ -48,6 +48,9 @@ const DEFAULTS = {
   bar_field_truck_damage: true,
   bar_field_trailer_damage: true,
   bar_field_odometer: true,
+  bar_field_rest: true,
+  bar_field_fuel_range: true,
+  bar_field_cruise_control: true,
 };
 
 const BAR_FIELDS = [
@@ -61,6 +64,9 @@ const BAR_FIELDS = [
   { key: 'truck_damage', label: 'Daună camion' },
   { key: 'trailer_damage', label: 'Daună remorcă' },
   { key: 'odometer', label: 'Km parcurși (odometru)' },
+  { key: 'rest', label: 'Timp până la odihnă obligatorie' },
+  { key: 'fuel_range', label: 'Autonomie combustibil (km)' },
+  { key: 'cruise_control', label: 'Cruise control (doar când e activ)' },
 ];
 
 let cache = null;

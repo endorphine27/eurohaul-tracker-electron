@@ -39,6 +39,7 @@ function normalize(d) {
     truckPlate: d.truckLicensePlate || null,
     speedKmh: metersPerSecondToKmh(d.speed),
     speedLimitKmh: speedLimitKmh(d.speedLimit),
+    cruiseControl: !!d.cruiseControl,
     fuelLiters: d.fuel ?? null,
     fuelCapacity: d.fuelCapacity ?? null,
     fuelPct: (typeof d.fuel === 'number' && typeof d.fuelCapacity === 'number' && d.fuelCapacity > 0)
