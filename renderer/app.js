@@ -484,7 +484,7 @@ checkAuth();
 // Setari (culoare/pozitie/marime font bara)
 // ---------------------------------------------------------------------
 async function initSettings() {
-  const { values, accentPresets, positions, shortcuts } = await window.eurohaul.getSettings();
+  const { values, accentPresets, positions, shortcuts, barFields } = await window.eurohaul.getSettings();
 
   const swatchRow = document.getElementById('accent-swatches');
   const accentHint = document.getElementById('accent-hint');
@@ -563,6 +563,19 @@ async function initSettings() {
   });
   const shortcutsList = document.getElementById('shortcuts-list');
   shortcutsList.innerHTML = shortcuts.map((s) => `<div class="muted-row" style="padding:3px 0">${s.label}</div>`).join('');
+
+  const barFieldsList = document.getElementById('bar-fields-list');
+  barFieldsList.innerHTML = barFields.map((f) => `
+    <div class="row-card" style="margin-bottom:8px">
+      <span>${f.label}</span>
+      <label class="switch"><input type="checkbox" id="bar-field-${f.key}" /><span class="switch-track"></span></label>
+    </div>
+  `).join('');
+  for (const f of barFields) {
+    const el = document.getElementById(`bar-field-${f.key}`);
+    el.checked = !!values[`bar_field_${f.key}`];
+    el.addEventListener('change', () => window.eurohaul.setSetting(`bar_field_${f.key}`, el.checked));
+  }
 }
 
 initSettings();

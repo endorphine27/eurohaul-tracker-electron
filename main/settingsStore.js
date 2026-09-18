@@ -18,7 +18,32 @@ const DEFAULTS = {
   alert_maxspeed_ats_on: false,
   alert_maxspeed_ats_val: 120,
   hotkeys_enabled: true,
+  // Ce informatii apar pe bara flotanta -- ca la Trucky, fiecare se poate
+  // ascunde individual din Setari. Toate pornite implicit.
+  bar_field_time: true,
+  bar_field_route: true,
+  bar_field_km_remaining: true,
+  bar_field_eta: true,
+  bar_field_cargo: true,
+  bar_field_speed: true,
+  bar_field_fuel: true,
+  bar_field_truck_damage: true,
+  bar_field_trailer_damage: true,
+  bar_field_odometer: true,
 };
+
+const BAR_FIELDS = [
+  { key: 'time', label: 'Ora din joc' },
+  { key: 'route', label: 'Rută (oraș → oraș)' },
+  { key: 'km_remaining', label: 'Km rămași' },
+  { key: 'eta', label: 'Timp estimat sosire' },
+  { key: 'cargo', label: 'Marfă' },
+  { key: 'speed', label: 'Viteză' },
+  { key: 'fuel', label: 'Combustibil' },
+  { key: 'truck_damage', label: 'Daună camion' },
+  { key: 'trailer_damage', label: 'Daună remorcă' },
+  { key: 'odometer', label: 'Km parcurși (odometru)' },
+];
 
 let cache = null;
 
@@ -60,4 +85,4 @@ function set(key, value) {
   save();
 }
 
-module.exports = { get, getAll, set, DEFAULTS };
+module.exports = { get, getAll, set, DEFAULTS, BAR_FIELDS };

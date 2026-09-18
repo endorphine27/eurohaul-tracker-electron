@@ -9,6 +9,11 @@ let vertical = false;
 let maxFont = 13;
 let lastSnapshot = { connected: false };
 const MIN_FONT = 9;
+// Implicit toate pornite -- pana vine primul "bar:style" din Setari.
+let fields = {
+  time: true, route: true, km_remaining: true, eta: true, cargo: true,
+  speed: true, fuel: true, truck_damage: true, trailer_damage: true, odometer: true,
+};
 
 window.eurohaulBar.onOrientation((orientation) => {
   vertical = orientation === 'vertical';
@@ -20,6 +25,7 @@ window.eurohaulBar.onStyle((style) => {
   if (style.accentColor) document.documentElement.style.setProperty('--accent', style.accentColor);
   if (style.accentBright) document.documentElement.style.setProperty('--accent-bright', style.accentBright);
   if (style.fontSize) maxFont = style.fontSize;
+  if (style.fields) fields = style.fields;
   // Culoarea/mărimea fontului trebuie să se vadă IMEDIAT, nu doar la
   // următorul tick de telemetrie (care poate să nu vină deloc dacă jocul nu
   // rulează) -- reaplicăm pe ultima stare cunoscută.
@@ -50,20 +56,20 @@ function fmtGameTime(minutes) {
 
 function buildParts(s) {
   const parts = [];
-  if (s.gameTimeMinutes !== null) parts.push(`🕒 ${fmtGameTime(s.gameTimeMinutes)}`);
+  if (fields.time && s.gameTimeMinutes !== null) parts.push(`🕒 ${fmtGameTime(s.gameTimeMinutes)}`);
   if (s.onTrip) {
-    parts.push(`📍 ${s.routeFrom || '?'} → ${s.routeTo || '?'}`);
-    if (s.kmRemaining !== null) parts.push(`🛣 ${fmt(s.kmRemaining)} km`);
-    if (s.etaMinutes !== null) parts.push(`🕐 ${fmtEta(s.etaMinutes)}`);
-    if (s.cargo) parts.push(`📦 ${s.cargo}`);
-  } else {
+    if (fields.route) parts.push(`📍 ${s.routeFrom || '?'} → ${s.routeTo || '?'}`);
+    if (fields.km_remaining && s.kmRemaining !== null) parts.push(`🛣 ${fmt(s.kmRemaining)} km`);
+    if (fields.eta && s.etaMinutes !== null) parts.push(`🕐 ${fmtEta(s.etaMinutes)}`);
+    if (fields.cargo && s.cargo) parts.push(`📦 ${s.cargo}`);
+  } else if (!parts.length) {
     parts.push('Conectat');
   }
-  if (s.speedKmh !== null) parts.push(`⏱ ${fmt(s.speedKmh)} km/h`);
-  if (s.fuelPct !== null) parts.push(`⛽ ${s.fuelPct}%`);
-  if (s.truckDamagePct !== null) parts.push(`🔧 ${s.truckDamagePct}%`);
-  if (s.trailerDamagePct !== null) parts.push(`🚛 ${s.trailerDamagePct}%`);
-  if (s.odometerKm !== null) parts.push(`🧭 ${fmt(s.odometerKm)} km`);
+  if (fields.speed && s.speedKmh !== null) parts.push(`⏱ ${fmt(s.speedKmh)} km/h`);
+  if (fields.fuel && s.fuelPct !== null) parts.push(`⛽ ${s.fuelPct}%`);
+  if (fields.truck_damage && s.truckDamagePct !== null) parts.push(`🔧 ${s.truckDamagePct}%`);
+  if (fields.trailer_damage && s.trailerDamagePct !== null) parts.push(`🚛 ${s.trailerDamagePct}%`);
+  if (fields.odometer && s.odometerKm !== null) parts.push(`🧭 ${fmt(s.odometerKm)} km`);
   return parts;
 }
 

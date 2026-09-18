@@ -71,12 +71,20 @@ ipcMain.on('bar:open-settings', () => {
   mainWindow.webContents.send('navigate', 'setari');
 });
 
+function fieldsFromSettings() {
+  const fields = {};
+  for (const f of settingsStore.BAR_FIELDS) {
+    fields[f.key] = settingsStore.get(`bar_field_${f.key}`);
+  }
+  return fields;
+}
+
 function applyBarStyleFromSettings() {
   if (!barHandle) return;
   const colorKey = settingsStore.get('bar_accent_color');
   const preset = ACCENT_PRESETS[colorKey] || ACCENT_PRESETS.gold;
   const fontSize = settingsStore.get('bar_font_size');
-  barHandle.setStyle({ accentColor: preset.base, accentBright: preset.bright, fontSize });
+  barHandle.setStyle({ accentColor: preset.base, accentBright: preset.bright, fontSize, fields: fieldsFromSettings() });
 }
 
 ipcMain.handle('settings:getAll', () => ({
@@ -84,6 +92,7 @@ ipcMain.handle('settings:getAll', () => ({
   accentPresets: ACCENT_PRESETS,
   positions: POSITIONS,
   shortcuts: SHORTCUTS,
+  barFields: settingsStore.BAR_FIELDS,
 }));
 
 ipcMain.on('settings:set', (_event, key, value) => {
@@ -91,7 +100,7 @@ ipcMain.on('settings:set', (_event, key, value) => {
   if (key === 'bar_position' && barHandle) {
     barHandle.setPosition(value);
   }
-  if (key === 'bar_accent_color' || key === 'bar_font_size') {
+  if (key === 'bar_accent_color' || key === 'bar_font_size' || key.startsWith('bar_field_')) {
     applyBarStyleFromSettings();
   }
   if (key === 'hotkeys_enabled' && hotkeysHandle) {
