@@ -10,6 +10,9 @@ const DEFAULTS = {
   // Procent (30-100) -- doar fundalul benzii devine translucid, textul si
   // iconitele raman intotdeauna complet vizibile.
   bar_opacity: 100,
+  // Semnul rotund de limitare de viteza (bara + Acasa) -- ca la Python,
+  // are propriul comutator, separat de restul campurilor.
+  speed_limit_sign_on: true,
   auth_token: '',
   auth_display_name: '',
   // Alerte sonore de viteza -- locale, 2 tipuri x 2 jocuri, ca la Trucky.

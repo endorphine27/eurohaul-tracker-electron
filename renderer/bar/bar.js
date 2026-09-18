@@ -15,6 +15,7 @@ let fields = {
   time: true, route: true, km_remaining: true, eta: true, cargo: true,
   speed: true, fuel: true, truck_damage: true, trailer_damage: true, odometer: true,
 };
+let showSpeedSign = true;
 
 window.eurohaulBar.onOrientation((orientation) => {
   vertical = orientation === 'vertical';
@@ -29,6 +30,7 @@ window.eurohaulBar.onStyle((style) => {
   if (typeof style.opacity === 'number') document.documentElement.style.setProperty('--bar-alpha', style.opacity);
   if (style.fontSize) maxFont = style.fontSize;
   if (style.fields) fields = style.fields;
+  if (typeof style.showSpeedLimitSign === 'boolean') showSpeedSign = style.showSpeedLimitSign;
   // Culoarea/mărimea fontului trebuie să se vadă IMEDIAT, nu doar la
   // următorul tick de telemetrie (care poate să nu vină deloc dacă jocul nu
   // rulează) -- reaplicăm pe ultima stare cunoscută.
@@ -69,7 +71,7 @@ function speedSignSvg(limitKmh, over) {
 }
 
 function updateSpeedSign(s) {
-  if (!fields.speed || !s.connected || s.speedKmh === null) {
+  if (!showSpeedSign || !fields.speed || !s.connected || s.speedKmh === null) {
     signEl.style.display = 'none';
     return;
   }

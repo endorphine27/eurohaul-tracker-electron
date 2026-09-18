@@ -143,10 +143,12 @@ function speedSignSvg(limitKmh, over) {
   return `<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="#fff" stroke="${ring}" stroke-width="4"/><text x="16" y="17" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif" font-weight="bold" font-size="${fontSize}" fill="#111">${text}</text></svg>`;
 }
 
+let showSpeedSign = true;
+
 function updateSpeedSign(s) {
   const el = document.getElementById('speed-sign');
   if (!el) return;
-  if (!s.connected || !s.onTrip || s.speedKmh === null) {
+  if (!showSpeedSign || !s.connected || !s.onTrip || s.speedKmh === null) {
     el.style.display = 'none';
     return;
   }
@@ -593,6 +595,15 @@ checkAuth();
 // ---------------------------------------------------------------------
 async function initSettings() {
   const { values, accentPresets, positions, shortcuts, barFields, soundFiles } = await window.eurohaul.getSettings();
+
+  const speedSignToggle = document.getElementById('speed-limit-sign-on');
+  showSpeedSign = !!values.speed_limit_sign_on;
+  speedSignToggle.checked = showSpeedSign;
+  speedSignToggle.addEventListener('change', () => {
+    showSpeedSign = speedSignToggle.checked;
+    window.eurohaul.setSetting('speed_limit_sign_on', showSpeedSign);
+    updateSpeedSign(lastTelemetry);
+  });
 
   const swatchRow = document.getElementById('accent-swatches');
   const accentHint = document.getElementById('accent-hint');

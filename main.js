@@ -149,6 +149,7 @@ function applyBarStyleFromSettings() {
     opacity,
     fontSize,
     fields: fieldsFromSettings(),
+    showSpeedLimitSign: settingsStore.get('speed_limit_sign_on'),
   });
 }
 
@@ -177,7 +178,8 @@ ipcMain.on('settings:set', (_event, key, value) => {
   if (key === 'bar_position' && barHandle) {
     barHandle.setPosition(value);
   }
-  if (key === 'bar_accent_color' || key === 'bar_font_size' || key === 'bar_opacity' || key.startsWith('bar_field_')) {
+  if (key === 'bar_accent_color' || key === 'bar_font_size' || key === 'bar_opacity'
+    || key === 'speed_limit_sign_on' || key.startsWith('bar_field_')) {
     applyBarStyleFromSettings();
   }
   if (key === 'bar_visible') {
