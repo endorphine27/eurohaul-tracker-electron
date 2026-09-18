@@ -55,6 +55,9 @@ const DEFAULTS = {
   bar_field_brakes: true,
   bar_field_lights: true,
   bar_field_arrival_clock: true,
+  bar_field_cargo_damage: true,
+  bar_field_trailer_name: true,
+  bar_field_job_income: true,
 };
 
 const BAR_FIELDS = [
@@ -75,6 +78,9 @@ const BAR_FIELDS = [
   { key: 'brakes', label: 'Frâne (presiune aer, frână de mână, retarder)' },
   { key: 'lights', label: 'Lumini active (faruri, avarii, girofar, semnalizare)' },
   { key: 'arrival_clock', label: 'Ora exactă de sosire' },
+  { key: 'cargo_damage', label: 'Daună marfă (live)' },
+  { key: 'trailer_name', label: 'Numele remorcii' },
+  { key: 'job_income', label: 'Venitul cursei curente' },
 ];
 
 let cache = null;

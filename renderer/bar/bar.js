@@ -16,6 +16,7 @@ let fields = {
   speed: true, fuel: true, truck_damage: true, trailer_damage: true, odometer: true,
   rest: true, fuel_range: true, cruise_control: true,
   gear_rpm: true, brakes: true, lights: true, arrival_clock: true,
+  cargo_damage: true, trailer_name: true, job_income: true,
 };
 let showSpeedSign = true;
 
@@ -120,6 +121,13 @@ function fmtArrivalClock(gameTimeMinutes, etaMinutes) {
   return fmtGameTime(gameTimeMinutes + etaMinutes);
 }
 
+// Suma e in moneda nativa a jocului (mare, "bruta") -- doar formatare cu
+// separator de mii, ca la Trucky (showJobIncome arata acelasi numar brut).
+function fmtMoney(amount, isAts) {
+  if (typeof amount !== 'number') return null;
+  return `${Math.round(amount).toLocaleString('ro-RO')}${isAts ? '$' : '€'}`;
+}
+
 function buildParts(s) {
   const parts = [];
   if (fields.time && s.gameTimeMinutes !== null) parts.push(`🕒 ${fmtGameTime(s.gameTimeMinutes)}`);
@@ -132,6 +140,10 @@ function buildParts(s) {
       if (arrival) parts.push(`🏁 ${arrival}`);
     }
     if (fields.cargo && s.cargo) parts.push(`📦 ${s.cargo}`);
+    if (fields.job_income) {
+      const income = fmtMoney(s.jobIncome, s.isAts);
+      if (income) parts.push(`💰 ${income}`);
+    }
   } else if (!parts.length) {
     parts.push('Conectat');
   }
@@ -140,6 +152,8 @@ function buildParts(s) {
   if (fields.fuel_range && s.fuelRangeKm !== null) parts.push(`🛢 ${fmt(s.fuelRangeKm)} km`);
   if (fields.truck_damage && s.truckDamagePct !== null) parts.push(`🔧 ${s.truckDamagePct}%`);
   if (fields.trailer_damage && s.trailerDamagePct !== null) parts.push(`🚛 ${s.trailerDamagePct}%`);
+  if (fields.cargo_damage && s.cargoDamagePct !== null) parts.push(`📉 ${s.cargoDamagePct}%`);
+  if (fields.trailer_name && s.trailerName) parts.push(`🚚 ${s.trailerName}`);
   if (fields.odometer && s.odometerKm !== null) parts.push(`🧭 ${fmt(s.odometerKm)} km`);
   if (fields.rest && s.restMinutes !== null) parts.push(`😴 ${fmtEta(s.restMinutes)}`);
   if (fields.cruise_control && s.cruiseControl) parts.push('✅ CC');

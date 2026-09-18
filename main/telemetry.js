@@ -81,6 +81,14 @@ function normalize(d) {
     blinkerRightOn: !!d.blinkerRightOn,
     truckDamagePct: averageWear([d.wearEngine, d.wearTransmission, d.wearCabin, d.wearChassis, d.wearWheels]),
     trailerDamagePct: trailerDamagePct(d.trailers),
+    // Live, spre deosebire de jobDeliveredCargoDamage (o singura citire, la
+    // livrare) -- ca la showCargoDamage din Trucky.
+    cargoDamagePct: typeof d.cargoDamage === 'number' ? Math.round(d.cargoDamage * 100) : null,
+    trailerName: firstAttachedTrailerName(d.trailers),
+    // In moneda nativa a jocului (€ pt ETS2, $ pt ATS) -- acelasi lucru pe
+    // care il arata si Trucky (showJobIncome), NU echivalentul in € VTC
+    // (acela il calculeaza serverul separat, din distanta/masa marfii).
+    jobIncome: typeof d.jobIncome === 'bigint' ? Number(d.jobIncome) : null,
     jobMarket: d.jobMarket || null,
     // Folosite DOAR de tripReporter (raportarea curselor catre server), nu de
     // interfata -- vezi main/tripReporter.js. Nu redenumim/rotunjim aici ca
@@ -119,6 +127,14 @@ function trailerDamagePct(trailers) {
   const t = trailers.find((tr) => tr && tr.attached) || trailers[0];
   if (!t || !t.attached) return null;
   return averageWear([t.wearChassis, t.wearWheels, t.wearBody]);
+}
+
+// Marca + modelul primei remorci atasate, ca la showTrailerName din Trucky.
+function firstAttachedTrailerName(trailers) {
+  if (!Array.isArray(trailers) || !trailers.length) return null;
+  const t = trailers.find((tr) => tr && tr.attached);
+  if (!t) return null;
+  return [t.brand, t.name].filter(Boolean).join(' ') || null;
 }
 
 // Porneste ascultarea telemetriei si intoarce { getSnapshot, onChange }.
