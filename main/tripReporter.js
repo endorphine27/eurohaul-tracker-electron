@@ -118,6 +118,10 @@ function createTripReporter({ getToken, telemetry, onTripStart, onTripDelivered 
       overspeed_seconds: Math.round(overspeedSeconds),
       driving_seconds: Math.round(drivingSeconds),
       fuel_avg_consumption: s.fuelAvgConsumption,
+      // Detectie DIRECTA a setarii "Amenzi" din joc (config.cfg, g_police) --
+      // are prioritate pe server fata de watchdog-ul statistic vechi, vezi
+      // api/log_trip.php. null cand tracker-ul n-a putut citi fisierul.
+      fines_enabled_detected: s.finesEnabledDetected,
     };
     resetTripAccumulators();
     try {

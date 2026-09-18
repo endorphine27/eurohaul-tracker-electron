@@ -1,4 +1,5 @@
 const { getData } = require('trucksim-telemetry');
+const gameProfileConfig = require('./gameProfileConfig');
 
 // Spre deosebire de Python (unde citeam un id brut si il mapam noi la un
 // nume "frumos"), trucksim-telemetry ne da deja numele de afisat direct
@@ -33,6 +34,9 @@ function normalize(d) {
   return {
     connected: !!d.sdkActive,
     isAts: d.game === 2, // 0=necunoscut, 1=ETS2, 2=ATS
+    // Citit direct din config.cfg-ul jocului (g_police), ca la Trucky --
+    // true/false/null (necunoscut). Vezi main/gameProfileConfig.js.
+    finesEnabledDetected: gameProfileConfig.getFinesEnabled(d.game === 2),
     onTrip: !!(d.cityDst || d.cargo),
     truckBrand: d.truckBrand || null,
     truckModel: d.truckName || null,
@@ -151,6 +155,7 @@ function firstAttachedTrailerName(trailers) {
 // Facem propriul interval, mult mai relaxat -- suficient de des pentru o
 // bara de informatii, fara sa suprasolicite deschiderea fisierului mapat.
 function startTelemetry() {
+  gameProfileConfig.startWatching();
   const listeners = [];
   let latest = normalize(null);
   let lastLogAt = 0;
