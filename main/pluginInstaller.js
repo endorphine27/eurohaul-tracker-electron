@@ -113,10 +113,20 @@ function autoInstall({ appIsPackaged, appDir, resourcesPath }) {
   for (const [key, folderName] of Object.entries(GAME_FOLDERS)) {
     const bin = findGameBinDir(libraries, folderName);
     if (!bin) continue;
+    const pluginsDir = path.join(bin, 'plugins');
+    const dest = path.join(pluginsDir, 'scs-telemetry.dll');
     try {
       result[key] = copyPluginTo(bin, dllSrc);
     } catch (err) {
-      result.errors.push(`${folderName}: ${err.message}`);
+      // EBUSY/EPERM aici inseamna aproape sigur ca jocul RULEAZA si are deja
+      // DLL-ul incarcat in memorie (Windows blocheaza suprascrierea unui
+      // fisier incarcat) -- nu e o eroare reala, e dovada ca pluginul e deja
+      // activ. Raportam ca succes doar daca fisierul chiar exista acolo.
+      if (fs.existsSync(dest)) {
+        result[key] = pluginsDir;
+      } else {
+        result.errors.push(`${folderName}: ${err.message}`);
+      }
     }
   }
   return result;

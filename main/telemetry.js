@@ -102,18 +102,45 @@ function trailerDamagePct(trailers) {
 // `onChange(cb)` cheama cb(snapshot) la fiecare actualizare (acelasi ritm
 // intern al SDK-ului, de obicei ~20/s -- suficient de des ca sa nu mai fie
 // nevoie de firul separat "rapid" din versiunea Python).
+// Diagnostic temporar (probleme raportate cu "offline" desi jocul ruleaza) --
+// logam starea bruta la conectare/deconectare si periodic cat timp ruleaza,
+// ca sa vedem exact ce raporteaza SDK-ul pe masina utilizatorului. De scos
+// dupa ce gasim cauza reala.
 function startTelemetry() {
   const listeners = [];
   let latest = normalize(null);
+  let lastLogAt = 0;
+  let loggedFirst = false;
 
-  const telemetry = truckSimTelemetry({
-    onUpdate: (data) => {
-      latest = normalize(data);
-      for (const cb of listeners) {
-        try { cb(latest); } catch (err) { console.error('[telemetry] listener error', err); }
-      }
-    },
-  });
+  let telemetry;
+  try {
+    telemetry = truckSimTelemetry({
+      onUpdate: (data) => {
+        latest = normalize(data);
+        const now = Date.now();
+        if (!loggedFirst) {
+          loggedFirst = true;
+          console.log('[telemetry] primul update brut:', JSON.stringify({
+            sdkActive: data.sdkActive, game: data.game, paused: data.paused,
+            speed: data.speed, truckOdometer: data.truckOdometer,
+          }));
+        }
+        if (now - lastLogAt > 3000) {
+          lastLogAt = now;
+          console.log('[telemetry] stare curenta:', JSON.stringify({
+            sdkActive: data.sdkActive, game: data.game, speed: data.speed,
+          }));
+        }
+        for (const cb of listeners) {
+          try { cb(latest); } catch (err) { console.error('[telemetry] listener error', err); }
+        }
+      },
+    });
+    telemetry.on('connected', () => console.log('[telemetry] eveniment "connected" primit de la SDK'));
+    telemetry.on('disconnected', () => console.log('[telemetry] eveniment "disconnected" primit de la SDK'));
+  } catch (err) {
+    console.error('[telemetry] truckSimTelemetry() a esuat la initializare:', err);
+  }
 
   return {
     telemetry,
