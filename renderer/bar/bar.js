@@ -24,6 +24,8 @@ window.eurohaulBar.onOrientation((orientation) => {
 window.eurohaulBar.onStyle((style) => {
   if (style.accentColor) document.documentElement.style.setProperty('--accent', style.accentColor);
   if (style.accentBright) document.documentElement.style.setProperty('--accent-bright', style.accentBright);
+  if (style.accentRgb) document.documentElement.style.setProperty('--accent-rgb', style.accentRgb);
+  if (typeof style.opacity === 'number') document.documentElement.style.setProperty('--bar-alpha', style.opacity);
   if (style.fontSize) maxFont = style.fontSize;
   if (style.fields) fields = style.fields;
   // Culoarea/mărimea fontului trebuie să se vadă IMEDIAT, nu doar la

@@ -7,6 +7,9 @@ const DEFAULTS = {
   bar_position: 'bottom_h',
   bar_accent_color: 'gold',
   bar_font_size: 13,
+  // Procent (30-100) -- doar fundalul benzii devine translucid, textul si
+  // iconitele raman intotdeauna complet vizibile.
+  bar_opacity: 100,
   auth_token: '',
   auth_display_name: '',
   // Alerte sonore de viteza -- locale, 2 tipuri x 2 jocuri, ca la Trucky.

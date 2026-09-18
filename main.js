@@ -107,12 +107,28 @@ function fieldsFromSettings() {
   return fields;
 }
 
+// "#rrggbb" -> "r,g,b", ca sa poata fi bagat direct intr-un rgba() din CSS
+// (asa se aplica opacitatea DOAR pe fundal, fara sa se vada prin text).
+function hexToRgbList(hex) {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  if (!m) return '13,17,25';
+  return [1, 2, 3].map((i) => parseInt(m[i], 16)).join(',');
+}
+
 function applyBarStyleFromSettings() {
   if (!barHandle) return;
   const colorKey = settingsStore.get('bar_accent_color');
   const preset = ACCENT_PRESETS[colorKey] || ACCENT_PRESETS.gold;
   const fontSize = settingsStore.get('bar_font_size');
-  barHandle.setStyle({ accentColor: preset.base, accentBright: preset.bright, fontSize, fields: fieldsFromSettings() });
+  const opacity = settingsStore.get('bar_opacity') / 100;
+  barHandle.setStyle({
+    accentColor: preset.base,
+    accentBright: preset.bright,
+    accentRgb: hexToRgbList(preset.base),
+    opacity,
+    fontSize,
+    fields: fieldsFromSettings(),
+  });
 }
 
 ipcMain.handle('settings:getAll', () => ({
@@ -140,7 +156,7 @@ ipcMain.on('settings:set', (_event, key, value) => {
   if (key === 'bar_position' && barHandle) {
     barHandle.setPosition(value);
   }
-  if (key === 'bar_accent_color' || key === 'bar_font_size' || key.startsWith('bar_field_')) {
+  if (key === 'bar_accent_color' || key === 'bar_font_size' || key === 'bar_opacity' || key.startsWith('bar_field_')) {
     applyBarStyleFromSettings();
   }
   if (key === 'bar_visible') {

@@ -565,6 +565,17 @@ async function initSettings() {
     window.eurohaul.setSetting('bar_font_size', parseInt(slider.value, 10));
   });
 
+  const opacitySlider = document.getElementById('bar-opacity-slider');
+  const opacityValue = document.getElementById('bar-opacity-value');
+  opacitySlider.value = values.bar_opacity;
+  opacityValue.textContent = `${values.bar_opacity}%`;
+  opacitySlider.addEventListener('input', () => {
+    opacityValue.textContent = `${opacitySlider.value}%`;
+  });
+  opacitySlider.addEventListener('change', () => {
+    window.eurohaul.setSetting('bar_opacity', parseInt(opacitySlider.value, 10));
+  });
+
   for (const [suffix, kind] of [['roadlimit-ets2', 'tol'], ['maxspeed-ets2', 'val'],
                                  ['roadlimit-ats', 'tol'], ['maxspeed-ats', 'val']]) {
     const key = suffix.replace('-', '_');
