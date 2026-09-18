@@ -20,6 +20,18 @@ window.eurohaul.onPlayOverspeedSound(() => {
   });
 });
 
+window.eurohaul.getTripStartSoundPath().then((soundPath) => {
+  const audio = document.getElementById('tripstart-sound');
+  if (audio) audio.src = soundPath;
+});
+
+window.eurohaul.onPlayTripStartSound(() => {
+  const audio = document.getElementById('tripstart-sound');
+  if (!audio) return;
+  audio.currentTime = 0;
+  audio.play().catch(() => {});
+});
+
 // Comutatorul "Bară info" din Acasă -- pornea/oprea vizual, dar nu era
 // conectat la nimic (bug real: click pe el nu facea absolut nimic).
 const barToggle = document.getElementById('toggle-bar');
@@ -599,6 +611,26 @@ async function initSettings() {
   });
   document.getElementById('alert-sound-preview').addEventListener('click', () => {
     const audio = document.getElementById('alert-sound');
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  });
+
+  const tripStartToggle = document.getElementById('alert-tripstart-on');
+  tripStartToggle.checked = !!values.alert_tripstart_on;
+  tripStartToggle.addEventListener('change', () => {
+    window.eurohaul.setSetting('alert_tripstart_on', tripStartToggle.checked);
+  });
+
+  const tripStartSelect = document.getElementById('tripstart-sound-select');
+  tripStartSelect.innerHTML = soundFiles.map((f) => `<option value="${f}">${f}</option>`).join('');
+  if (soundFiles.includes(values.alert_tripstart_sound_file)) tripStartSelect.value = values.alert_tripstart_sound_file;
+  tripStartSelect.addEventListener('change', async () => {
+    window.eurohaul.setSetting('alert_tripstart_sound_file', tripStartSelect.value);
+    const audio = document.getElementById('tripstart-sound');
+    audio.src = await window.eurohaul.getTripStartSoundPath();
+  });
+  document.getElementById('tripstart-sound-preview').addEventListener('click', () => {
+    const audio = document.getElementById('tripstart-sound');
     audio.currentTime = 0;
     audio.play().catch(() => {});
   });

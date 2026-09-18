@@ -31,9 +31,9 @@ function listSoundFiles() {
   }
 }
 
-function overspeedSoundPath() {
+function soundPathForSetting(settingKey) {
   const available = listSoundFiles();
-  const chosen = settingsStore.get('alert_sound_file');
+  const chosen = settingsStore.get(settingKey);
   const file = available.includes(chosen) ? chosen : available[0];
   return file ? path.join(soundsDir, file) : null;
 }
@@ -86,10 +86,11 @@ ipcMain.handle('telemetry:getSnapshot', () => {
   return telemetryHandle ? telemetryHandle.getSnapshot() : { connected: false };
 });
 
-ipcMain.handle('sound:getOverspeedPath', () => {
-  const p = overspeedSoundPath();
+function fileUrl(p) {
   return p ? `file://${p.replace(/\\/g, '/')}` : null;
-});
+}
+ipcMain.handle('sound:getOverspeedPath', () => fileUrl(soundPathForSetting('alert_sound_file')));
+ipcMain.handle('sound:getTripStartPath', () => fileUrl(soundPathForSetting('alert_tripstart_sound_file')));
 ipcMain.handle('sound:listFiles', () => listSoundFiles());
 
 ipcMain.on('bar:open-settings', () => {
@@ -259,6 +260,11 @@ app.whenReady().then(() => {
   tripReporter = createTripReporter({
     getToken: () => settingsStore.get('auth_token'),
     telemetry: telemetryHandle,
+    onTripStart: () => {
+      if (settingsStore.get('alert_tripstart_on') && mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('sound:play-tripstart');
+      }
+    },
   });
 
   profilePoller = startProfilePoller(() => settingsStore.get('auth_token'));

@@ -25,6 +25,10 @@ const DEFAULTS = {
   // fisier fix; se completeaza real la prima citire (vezi listSoundFiles
   // in main.js), asta e doar preferinta implicita.
   alert_sound_file: 'beep3.mp3',
+  // Confirmare sonora cand porneste o cursa noua (job preluat) -- separata de
+  // alerta de viteza, cu propriul sunet ales din acelasi folder "sounds".
+  alert_tripstart_on: true,
+  alert_tripstart_sound_file: 'success.mp3',
   hotkeys_enabled: true,
   // Ce informatii apar pe bara flotanta -- ca la Trucky, fiecare se poate
   // ascunde individual din Setari. Toate pornite implicit.

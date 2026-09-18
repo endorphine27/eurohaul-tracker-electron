@@ -27,7 +27,7 @@ function randomEventId() {
 
 // `getToken` e o functie (nu un token fix) fiindca userul se poate loga/delo-
 // ga in timp ce aplicatia ruleaza -- vrem mereu valoarea CURENTA.
-function createTripReporter({ getToken, telemetry }) {
+function createTripReporter({ getToken, telemetry, onTripStart }) {
   let running = false;
   let tripId = null;
   let wasOnTrip = false;
@@ -182,6 +182,12 @@ function createTripReporter({ getToken, telemetry }) {
 
     if (s.onTrip && !wasOnTrip) {
       wasOnTrip = true;
+      // Confirmarea sonora locala nu trebuie sa astepte raspunsul serverului
+      // (ar putea sa nici nu vina, de ex. fara internet) -- pornim cursa
+      // "vizual/audio" instant, raportarea catre server e separata.
+      if (typeof onTripStart === 'function') {
+        try { onTripStart(s); } catch { /* ignoram */ }
+      }
       handleTripStart(s).catch(() => {});
     } else if (!s.onTrip && wasOnTrip) {
       wasOnTrip = false;
