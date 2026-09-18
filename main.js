@@ -45,6 +45,11 @@ function createMainWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+    // Bara ramane o fereastra separata, deschisa -- fara asta,
+    // "window-all-closed" nu ar declansa niciodata pentru ca Electron
+    // vede bara ca fereastra inca deschisa, iar programul ar ramane
+    // pornit "invizibil" in Task Manager dupa ce utilizatorul apasa X.
+    app.quit();
   });
 }
 
