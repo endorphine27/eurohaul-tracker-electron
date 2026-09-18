@@ -30,6 +30,9 @@
       { "from": "sounds", "to": "sounds", "filter": ["**/*"] },
       { "from": "plugin", "to": "plugin", "filter": ["**/*"] }
     ],
+    "asarUnpack": [
+      "node_modules/trucksim-telemetry/**/*"
+    ],
     "win": {
       "icon": "assets/icon.ico",
       "target": [{ "target": "nsis", "arch": ["x64"] }]
