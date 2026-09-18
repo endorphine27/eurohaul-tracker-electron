@@ -2,10 +2,11 @@
   "name": "eurohaul-tracker",
   "version": "1.0.0",
   "description": "EuroHaul Tracker - Electron, integral (fara Python)",
+  "author": "EuroHaul VTC",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win --publish never"
   },
   "dependencies": {
     "@xhayper/discord-rpc": "^1.3.4",
