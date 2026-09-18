@@ -17,7 +17,7 @@ let fields = {
   rest: true, fuel_range: true, cruise_control: true,
   gear_rpm: true, brakes: true, lights: true, arrival_clock: true,
   cargo_damage: true, trailer_name: true, job_income: true,
-  fuel_consumption: true, real_clock: true, wheel_lift: true,
+  fuel_consumption: true, real_clock: true, wheel_lift: true, real_eta: true,
 };
 let showSpeedSign = true;
 
@@ -153,6 +153,7 @@ function buildParts(s) {
     if (fields.route) parts.push(`📍 ${s.routeFrom || '?'} → ${s.routeTo || '?'}`);
     if (fields.km_remaining && s.kmRemaining !== null) parts.push(`🛣 ${fmt(s.kmRemaining)} km`);
     if (fields.eta && s.etaMinutes !== null) parts.push(`🕐 ${fmtEta(s.etaMinutes)}`);
+    if (fields.real_eta && s.realEtaMinutes !== null) parts.push(`⏳ ${fmtEta(s.realEtaMinutes)}`);
     if (fields.arrival_clock) {
       const arrival = fmtArrivalClock(s.gameTimeMinutes, s.etaMinutes);
       if (arrival) parts.push(`🏁 ${arrival}`);

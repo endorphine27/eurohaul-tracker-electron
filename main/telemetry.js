@@ -179,6 +179,35 @@ function startTelemetry() {
   let lastLogAt = 0;
   let loggedFirst = false;
 
+  // Timpul "real" pana la destinatie -- eta-ul brut din SDK (routeTime) e in
+  // timp de JOC (scala variaza ~1:19 pe autostrada / ~1:3 in oras-depou, vezi
+  // arrival_clock mai jos care il foloseste corect ca atare), NU minute reale
+  // de condus. Calculam noi separat: km ramasi / viteza medie REALA (nu cea
+  // instantanee, ca sa nu sara la o oprire in trafic), exact ca un GPS auto.
+  const AVG_SPEED_TAU_SEC = 120;
+  let avgSpeedKmh = null;
+  let wasOnTripForAvg = false;
+  let lastAvgTickAt = null;
+
+  function updateAvgSpeed(s, now) {
+    if (!s.connected || !s.onTrip) {
+      avgSpeedKmh = null;
+      wasOnTripForAvg = false;
+      lastAvgTickAt = null;
+      return;
+    }
+    if (!wasOnTripForAvg) {
+      wasOnTripForAvg = true;
+      avgSpeedKmh = s.speedKmh ?? 0;
+      lastAvgTickAt = now;
+      return;
+    }
+    const dtSec = Math.min(5, Math.max(0, (now - lastAvgTickAt) / 1000));
+    lastAvgTickAt = now;
+    const alpha = 1 - Math.exp(-dtSec / AVG_SPEED_TAU_SEC);
+    avgSpeedKmh += ((s.speedKmh ?? 0) - avgSpeedKmh) * alpha;
+  }
+
   function poll() {
     let data = null;
     try {
@@ -189,6 +218,12 @@ function startTelemetry() {
     latest = normalize(data);
 
     const now = Date.now();
+    updateAvgSpeed(latest, now);
+    latest.avgSpeedKmh = avgSpeedKmh;
+    latest.realEtaMinutes = (typeof avgSpeedKmh === 'number' && avgSpeedKmh > 3 && typeof latest.kmRemaining === 'number')
+      ? (latest.kmRemaining / avgSpeedKmh) * 60
+      : null;
+
     if (!loggedFirst && data) {
       loggedFirst = true;
       console.log('[telemetry] primul update brut:', JSON.stringify({

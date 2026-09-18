@@ -61,13 +61,14 @@ const DEFAULTS = {
   bar_field_fuel_consumption: true,
   bar_field_real_clock: true,
   bar_field_wheel_lift: true,
+  bar_field_real_eta: true,
 };
 
 const BAR_FIELDS = [
   { key: 'time', label: 'Ora din joc' },
   { key: 'route', label: 'Rută (oraș → oraș)' },
   { key: 'km_remaining', label: 'Km rămași' },
-  { key: 'eta', label: 'Timp estimat sosire' },
+  { key: 'eta', label: 'Timp estimat sosire (timp de joc, din GPS)' },
   { key: 'cargo', label: 'Marfă' },
   { key: 'speed', label: 'Viteză' },
   { key: 'fuel', label: 'Combustibil' },
@@ -87,6 +88,7 @@ const BAR_FIELDS = [
   { key: 'fuel_consumption', label: 'Consum mediu combustibil (l/100km)' },
   { key: 'real_clock', label: 'Ceas din realitate' },
   { key: 'wheel_lift', label: 'Indicator roți ridicate (osie liftabilă, camion + remorcă)' },
+  { key: 'real_eta', label: 'Timp real până la destinație (minute reale, din viteza medie)' },
 ];
 
 let cache = null;
