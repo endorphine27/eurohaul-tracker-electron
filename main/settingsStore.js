@@ -60,6 +60,7 @@ const DEFAULTS = {
   bar_field_job_income: true,
   bar_field_fuel_consumption: true,
   bar_field_real_clock: true,
+  bar_field_wheel_lift: true,
 };
 
 const BAR_FIELDS = [
@@ -85,6 +86,7 @@ const BAR_FIELDS = [
   { key: 'job_income', label: 'Venitul cursei curente' },
   { key: 'fuel_consumption', label: 'Consum mediu combustibil (l/100km)' },
   { key: 'real_clock', label: 'Ceas din realitate' },
+  { key: 'wheel_lift', label: 'Indicator roți ridicate (osie liftabilă, camion + remorcă)' },
 ];
 
 let cache = null;

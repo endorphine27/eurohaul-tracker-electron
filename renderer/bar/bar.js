@@ -17,7 +17,7 @@ let fields = {
   rest: true, fuel_range: true, cruise_control: true,
   gear_rpm: true, brakes: true, lights: true, arrival_clock: true,
   cargo_damage: true, trailer_name: true, job_income: true,
-  fuel_consumption: true, real_clock: true,
+  fuel_consumption: true, real_clock: true, wheel_lift: true,
 };
 let showSpeedSign = true;
 
@@ -103,6 +103,15 @@ function buildBrakes(s) {
 
 // Cluster compact de lumini -- afisam DOAR iconitele celor active, ca un
 // indicator de bord real (nimic aprins = campul nu apare deloc pe bara).
+// Apare DOAR cat o osie liftabila e ridicata acum -- camion si remorca
+// distinct, ca la Trucky (showTruckWheelLiftIndicator / showTrailersWheelLiftIndicator).
+function buildWheelLift(s) {
+  const parts = [];
+  if (s.truckWheelLifted) parts.push('🔼🚚');
+  if (s.trailerWheelLifted) parts.push('🔼🚛');
+  return parts.join(' ');
+}
+
 function buildLights(s) {
   const parts = [];
   if (s.blinkerLeftOn) parts.push('◀️');
@@ -177,6 +186,10 @@ function buildParts(s) {
   if (fields.lights) {
     const lights = buildLights(s);
     if (lights) parts.push(lights);
+  }
+  if (fields.wheel_lift) {
+    const wl = buildWheelLift(s);
+    if (wl) parts.push(wl);
   }
   return parts;
 }

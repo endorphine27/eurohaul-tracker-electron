@@ -92,6 +92,11 @@ function normalize(d) {
     // livrare) -- ca la showCargoDamage din Trucky.
     cargoDamagePct: typeof d.cargoDamage === 'number' ? Math.round(d.cargoDamage * 100) : null,
     trailerName: firstAttachedTrailerName(d.trailers),
+    // Osie liftabila ridicata (economie anvelope/taxe cand remorca/camionul
+    // circula fara incarcare completa) -- ca la showTruckWheelLiftIndicator /
+    // showTrailersWheelLiftIndicator din Trucky.
+    truckWheelLifted: anyWheelLifted(d.truckWheelLift),
+    trailerWheelLifted: trailerWheelLifted(d.trailers),
     // In moneda nativa a jocului (€ pt ETS2, $ pt ATS) -- acelasi lucru pe
     // care il arata si Trucky (showJobIncome), NU echivalentul in € VTC
     // (acela il calculeaza serverul separat, din distanta/masa marfii).
@@ -142,6 +147,19 @@ function firstAttachedTrailerName(trailers) {
   const t = trailers.find((tr) => tr && tr.attached);
   if (!t) return null;
   return [t.brand, t.name].filter(Boolean).join(' ') || null;
+}
+
+// SDK-ul da starea de ridicare per roata, ca fractie <0;1> -- ne intereseaza
+// doar daca ORICE roata liftabila e ridicata acum, nu gradul exact.
+function anyWheelLifted(liftArray) {
+  return Array.isArray(liftArray) && liftArray.some((v) => typeof v === 'number' && v > 0.5);
+}
+
+function trailerWheelLifted(trailers) {
+  if (!Array.isArray(trailers) || !trailers.length) return false;
+  const t = trailers.find((tr) => tr && tr.attached);
+  if (!t) return false;
+  return anyWheelLifted(t.wheelLift);
 }
 
 // Porneste ascultarea telemetriei si intoarce { getSnapshot, onChange }.
