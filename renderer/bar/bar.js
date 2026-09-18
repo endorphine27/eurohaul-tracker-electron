@@ -2,6 +2,7 @@ const bar = document.getElementById('bar');
 const dotEl = document.getElementById('dot');
 const textEl = document.getElementById('main-text');
 const gearEl = document.getElementById('gear');
+const signEl = document.getElementById('speed-sign');
 
 gearEl.addEventListener('click', () => window.eurohaulBar.openSettings());
 
@@ -56,6 +57,27 @@ function fmtGameTime(minutes) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
+// Semnul rotund de limitare de viteza, ca la Python: cerc alb, contur rosu
+// (rosu-aprins daca depasesti limita cu peste 3 km/h), numarul limitei in
+// centru. "--" cand nu stim limita.
+function speedSignSvg(limitKmh, over) {
+  const ring = over ? '#ff4d3d' : '#c62828';
+  const hasLimit = typeof limitKmh === 'number';
+  const text = hasLimit ? String(Math.round(limitKmh)) : '--';
+  const fontSize = hasLimit ? 13 : 10;
+  return `<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="#fff" stroke="${ring}" stroke-width="4"/><text x="16" y="17" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif" font-weight="bold" font-size="${fontSize}" fill="#111">${text}</text></svg>`;
+}
+
+function updateSpeedSign(s) {
+  if (!fields.speed || !s.connected || s.speedKmh === null) {
+    signEl.style.display = 'none';
+    return;
+  }
+  const over = typeof s.speedLimitKmh === 'number' && s.speedKmh - s.speedLimitKmh > 3;
+  signEl.innerHTML = speedSignSvg(s.speedLimitKmh, over);
+  signEl.style.display = '';
+}
+
 function buildParts(s) {
   const parts = [];
   if (fields.time && s.gameTimeMinutes !== null) parts.push(`🕒 ${fmtGameTime(s.gameTimeMinutes)}`);
@@ -101,6 +123,7 @@ function applyFont() {
 function render(s) {
   lastSnapshot = s;
   dotEl.classList.toggle('connected', !!s.connected);
+  updateSpeedSign(s);
 
   if (!s.connected) {
     textEl.textContent = 'Aștept ETS2 sau ATS…';

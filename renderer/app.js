@@ -132,6 +132,29 @@ function fmtEta(minutes) {
   return h > 0 ? `${h}h ${mm}m` : `${mm}m`;
 }
 
+// Semnul rotund de limitare de viteza, ca la Python: cerc alb, contur rosu
+// (rosu-aprins daca depasesti limita cu peste 3 km/h), numarul limitei in
+// centru. "--" cand nu stim limita.
+function speedSignSvg(limitKmh, over) {
+  const ring = over ? '#ff4d3d' : '#c62828';
+  const hasLimit = typeof limitKmh === 'number';
+  const text = hasLimit ? String(Math.round(limitKmh)) : '--';
+  const fontSize = hasLimit ? 13 : 10;
+  return `<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="#fff" stroke="${ring}" stroke-width="4"/><text x="16" y="17" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif" font-weight="bold" font-size="${fontSize}" fill="#111">${text}</text></svg>`;
+}
+
+function updateSpeedSign(s) {
+  const el = document.getElementById('speed-sign');
+  if (!el) return;
+  if (!s.connected || !s.onTrip || s.speedKmh === null) {
+    el.style.display = 'none';
+    return;
+  }
+  const over = typeof s.speedLimitKmh === 'number' && s.speedKmh - s.speedLimitKmh > 3;
+  el.innerHTML = speedSignSvg(s.speedLimitKmh, over);
+  el.style.display = '';
+}
+
 function stars(rating) {
   const r = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
   return '★'.repeat(r) + '☆'.repeat(5 - r);
@@ -164,6 +187,7 @@ function renderHome() {
   const pf = lastProfile;
   const disconnectedCard = document.getElementById('disconnected-card');
   const tripCard = document.getElementById('trip-card');
+  updateSpeedSign(s);
   if (!s.connected || !s.onTrip) {
     if (disconnectedCard) disconnectedCard.style.display = '';
     if (tripCard) tripCard.style.display = 'none';

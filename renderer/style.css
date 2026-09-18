@@ -155,6 +155,8 @@ svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width:
 .ic-gold { color: var(--gold-br); }
 .truck-name { font-size: 13px; font-weight: 600; }
 .trip-speed { margin-left: auto; font-size: 12px; color: var(--muted); }
+.speed-sign { flex-shrink: 0; width: 26px; height: 26px; }
+.speed-sign svg { width: 100%; height: 100%; }
 .plate-badge {
   margin-left: auto; font-family: Consolas, monospace; font-weight: 700;
   background: var(--bg-2); border-radius: 6px; padding: 4px 10px; font-size: 12px;

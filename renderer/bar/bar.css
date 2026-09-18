@@ -64,4 +64,11 @@ body.vertical .main-text {
   display: flex; align-items: center; justify-content: center;
   -webkit-app-region: no-drag;
 }
+
+.speed-sign {
+  flex-shrink: 0;
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+}
+.speed-sign svg { width: 100%; height: 100%; }
 .gear svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
