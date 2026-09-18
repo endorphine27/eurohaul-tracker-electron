@@ -27,7 +27,7 @@ function randomEventId() {
 
 // `getToken` e o functie (nu un token fix) fiindca userul se poate loga/delo-
 // ga in timp ce aplicatia ruleaza -- vrem mereu valoarea CURENTA.
-function createTripReporter({ getToken, telemetry, onTripStart }) {
+function createTripReporter({ getToken, telemetry, onTripStart, onTripDelivered }) {
   let running = false;
   let tripId = null;
   let wasOnTrip = false;
@@ -86,6 +86,12 @@ function createTripReporter({ getToken, telemetry, onTripStart }) {
     }
 
     const delivered = pendingDelivery;
+    // Confirmarea sonora de livrare, la fel ca la pornirea cursei -- instant,
+    // fara sa astepte raspunsul serverului. Doar la livrare reala (nu si la
+    // anulare, cand `delivered` ramane null pentru ca jobDelivered n-a aparut).
+    if (delivered && typeof onTripDelivered === 'function') {
+      try { onTripDelivered(s); } catch { /* ignoram */ }
+    }
     // "la timp" doar daca avem ambele repere de timp din SDK; altfel nu
     // penalizam fara sa stim sigur.
     const onTime = (delivered && typeof s.timeAbsDelivery === 'number' && typeof s.gameTimeMinutes === 'number')

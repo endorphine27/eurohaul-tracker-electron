@@ -9,6 +9,7 @@
 
 <audio id="alert-sound" preload="auto"></audio>
 <audio id="tripstart-sound" preload="auto"></audio>
+<audio id="tripdelivered-sound" preload="auto"></audio>
 
 <div class="titlebar">
   <div class="titlebar-brand">
@@ -248,6 +249,20 @@
           <div style="display:flex; align-items:center; gap:8px">
             <select id="tripstart-sound-select" class="alert-select"></select>
             <button class="btn-preview" id="tripstart-sound-preview" title="Ascultă">▶</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-label">Confirmare cursă livrată</div>
+        <div class="row-card" style="margin-bottom:10px">
+          <span>Sunet la livrarea cu succes a unei curse</span>
+          <label class="switch"><input type="checkbox" id="alert-tripdelivered-on" /><span class="switch-track"></span></label>
+        </div>
+        <div class="row-card">
+          <span>Sunet</span>
+          <div style="display:flex; align-items:center; gap:8px">
+            <select id="tripdelivered-sound-select" class="alert-select"></select>
+            <button class="btn-preview" id="tripdelivered-sound-preview" title="Ascultă">▶</button>
           </div>
         </div>
       </div>

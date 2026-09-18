@@ -32,6 +32,18 @@ window.eurohaul.onPlayTripStartSound(() => {
   audio.play().catch(() => {});
 });
 
+window.eurohaul.getTripDeliveredSoundPath().then((soundPath) => {
+  const audio = document.getElementById('tripdelivered-sound');
+  if (audio) audio.src = soundPath;
+});
+
+window.eurohaul.onPlayTripDeliveredSound(() => {
+  const audio = document.getElementById('tripdelivered-sound');
+  if (!audio) return;
+  audio.currentTime = 0;
+  audio.play().catch(() => {});
+});
+
 // Comutatorul "Bară info" din Acasă -- pornea/oprea vizual, dar nu era
 // conectat la nimic (bug real: click pe el nu facea absolut nimic).
 const barToggle = document.getElementById('toggle-bar');
@@ -631,6 +643,26 @@ async function initSettings() {
   });
   document.getElementById('tripstart-sound-preview').addEventListener('click', () => {
     const audio = document.getElementById('tripstart-sound');
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  });
+
+  const tripDeliveredToggle = document.getElementById('alert-tripdelivered-on');
+  tripDeliveredToggle.checked = !!values.alert_tripdelivered_on;
+  tripDeliveredToggle.addEventListener('change', () => {
+    window.eurohaul.setSetting('alert_tripdelivered_on', tripDeliveredToggle.checked);
+  });
+
+  const tripDeliveredSelect = document.getElementById('tripdelivered-sound-select');
+  tripDeliveredSelect.innerHTML = soundFiles.map((f) => `<option value="${f}">${f}</option>`).join('');
+  if (soundFiles.includes(values.alert_tripdelivered_sound_file)) tripDeliveredSelect.value = values.alert_tripdelivered_sound_file;
+  tripDeliveredSelect.addEventListener('change', async () => {
+    window.eurohaul.setSetting('alert_tripdelivered_sound_file', tripDeliveredSelect.value);
+    const audio = document.getElementById('tripdelivered-sound');
+    audio.src = await window.eurohaul.getTripDeliveredSoundPath();
+  });
+  document.getElementById('tripdelivered-sound-preview').addEventListener('click', () => {
+    const audio = document.getElementById('tripdelivered-sound');
     audio.currentTime = 0;
     audio.play().catch(() => {});
   });

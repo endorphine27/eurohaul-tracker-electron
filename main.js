@@ -91,6 +91,7 @@ function fileUrl(p) {
 }
 ipcMain.handle('sound:getOverspeedPath', () => fileUrl(soundPathForSetting('alert_sound_file')));
 ipcMain.handle('sound:getTripStartPath', () => fileUrl(soundPathForSetting('alert_tripstart_sound_file')));
+ipcMain.handle('sound:getTripDeliveredPath', () => fileUrl(soundPathForSetting('alert_tripdelivered_sound_file')));
 ipcMain.handle('sound:listFiles', () => listSoundFiles());
 
 ipcMain.on('bar:open-settings', () => {
@@ -263,6 +264,11 @@ app.whenReady().then(() => {
     onTripStart: () => {
       if (settingsStore.get('alert_tripstart_on') && mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('sound:play-tripstart');
+      }
+    },
+    onTripDelivered: () => {
+      if (settingsStore.get('alert_tripdelivered_on') && mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('sound:play-tripdelivered');
       }
     },
   });

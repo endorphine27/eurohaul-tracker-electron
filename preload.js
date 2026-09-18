@@ -38,5 +38,9 @@ contextBridge.exposeInMainWorld('eurohaul', {
     ipcRenderer.on('sound:play-tripstart', () => callback());
   },
   getTripStartSoundPath: () => ipcRenderer.invoke('sound:getTripStartPath'),
+  onPlayTripDeliveredSound: (callback) => {
+    ipcRenderer.on('sound:play-tripdelivered', () => callback());
+  },
+  getTripDeliveredSoundPath: () => ipcRenderer.invoke('sound:getTripDeliveredPath'),
   listSoundFiles: () => ipcRenderer.invoke('sound:listFiles'),
 });

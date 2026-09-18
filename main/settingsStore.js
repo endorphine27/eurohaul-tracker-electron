@@ -29,6 +29,9 @@ const DEFAULTS = {
   // alerta de viteza, cu propriul sunet ales din acelasi folder "sounds".
   alert_tripstart_on: true,
   alert_tripstart_sound_file: 'success.mp3',
+  // La fel, dar pentru livrarea cu succes a cursei (nu si la anulare).
+  alert_tripdelivered_on: true,
+  alert_tripdelivered_sound_file: 'notification.mp3',
   hotkeys_enabled: true,
   // Ce informatii apar pe bara flotanta -- ca la Trucky, fiecare se poate
   // ascunde individual din Setari. Toate pornite implicit.
