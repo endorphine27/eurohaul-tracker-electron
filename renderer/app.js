@@ -20,6 +20,19 @@ window.eurohaul.onPlayOverspeedSound(() => {
   });
 });
 
+// Comutatorul "Bară info" din Acasă -- pornea/oprea vizual, dar nu era
+// conectat la nimic (bug real: click pe el nu facea absolut nimic).
+const barToggle = document.getElementById('toggle-bar');
+window.eurohaul.getSettings().then(({ values }) => {
+  barToggle.checked = !!values.bar_visible;
+});
+barToggle.addEventListener('change', () => {
+  window.eurohaul.setSetting('bar_visible', barToggle.checked);
+});
+window.eurohaul.onBarVisibilityChanged((visible) => {
+  barToggle.checked = visible;
+});
+
 const railButtons = document.querySelectorAll('.rail-btn');
 const pages = document.querySelectorAll('.page');
 

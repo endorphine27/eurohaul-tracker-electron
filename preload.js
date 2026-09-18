@@ -12,6 +12,9 @@ contextBridge.exposeInMainWorld('eurohaul', {
   },
   getSettings: () => ipcRenderer.invoke('settings:getAll'),
   setSetting: (key, value) => ipcRenderer.send('settings:set', key, value),
+  onBarVisibilityChanged: (callback) => {
+    ipcRenderer.on('bar:visibilityChanged', (_event, visible) => callback(visible));
+  },
 
   getAuthStatus: () => ipcRenderer.invoke('auth:getStatus'),
   login: (username, password) => ipcRenderer.invoke('auth:login', username, password),

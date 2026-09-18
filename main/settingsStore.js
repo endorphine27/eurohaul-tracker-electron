@@ -3,6 +3,7 @@ const path = require('path');
 const { app } = require('electron');
 
 const DEFAULTS = {
+  bar_visible: true,
   bar_position: 'bottom_h',
   bar_accent_color: 'gold',
   bar_font_size: 13,

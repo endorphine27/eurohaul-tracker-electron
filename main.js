@@ -23,7 +23,6 @@ let barHandle = null;
 let profilePoller = null;
 let hotkeysHandle = null;
 let allHidden = false;
-let barHiddenByHotkey = false;
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -100,6 +99,17 @@ ipcMain.handle('settings:getAll', () => ({
   barFields: settingsStore.BAR_FIELDS,
 }));
 
+// Vizibilitatea barei depinde de 2 lucruri independente: comutatorul
+// "Bară info" din Acasă / tasta Ctrl+Alt+B (setare persistenta,
+// bar_visible) si Ctrl+Alt+H care ascunde TOT temporar (allHidden, nu se
+// salveaza). Bara e vizibila doar daca ambele conditii sunt indeplinite.
+function applyBarVisibility() {
+  if (!barHandle || barHandle.window.isDestroyed()) return;
+  const shouldShow = settingsStore.get('bar_visible') && !allHidden;
+  if (shouldShow) barHandle.window.show();
+  else barHandle.window.hide();
+}
+
 ipcMain.on('settings:set', (_event, key, value) => {
   settingsStore.set(key, value);
   if (key === 'bar_position' && barHandle) {
@@ -107,6 +117,9 @@ ipcMain.on('settings:set', (_event, key, value) => {
   }
   if (key === 'bar_accent_color' || key === 'bar_font_size' || key.startsWith('bar_field_')) {
     applyBarStyleFromSettings();
+  }
+  if (key === 'bar_visible') {
+    applyBarVisibility();
   }
   if (key === 'hotkeys_enabled' && hotkeysHandle) {
     if (value) hotkeysHandle.register();
@@ -119,15 +132,19 @@ function toggleAllVisibility() {
   if (mainWindow && !mainWindow.isDestroyed()) {
     if (allHidden) mainWindow.hide(); else mainWindow.show();
   }
-  if (barHandle && !barHandle.window.isDestroyed()) {
-    if (allHidden) barHandle.window.hide(); else barHandle.window.show();
-  }
+  applyBarVisibility();
 }
 
+// Apasata din tasta rapida Ctrl+Alt+B -- trebuie sa se comporte identic cu
+// comutatorul "Bară info" din Acasă (aceeasi setare persistenta), ca cele
+// doua sa ramana mereu in sincron, indiferent care a fost apasat ultimul.
 function toggleBarVisibility() {
-  if (!barHandle || barHandle.window.isDestroyed()) return;
-  barHiddenByHotkey = !barHiddenByHotkey;
-  if (barHiddenByHotkey) barHandle.window.hide(); else barHandle.window.show();
+  const next = !settingsStore.get('bar_visible');
+  settingsStore.set('bar_visible', next);
+  applyBarVisibility();
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('bar:visibilityChanged', next);
+  }
 }
 
 // ---------- Autentificare + profil (inlocuieste API-ul de login/profil.php
@@ -179,6 +196,7 @@ app.whenReady().then(() => {
   createMainWindow();
   barHandle = createBarWindow(settingsStore.get('bar_position'));
   applyBarStyleFromSettings();
+  applyBarVisibility();
 
   telemetryHandle = startTelemetry();
   telemetryHandle.onChange((snapshot) => {
