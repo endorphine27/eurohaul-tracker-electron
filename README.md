@@ -2,8 +2,12 @@
 
 Rescrierea completă a EuroHaul Tracker, integral în Electron (fără Python).
 Citește telemetria ETS2/ATS direct din Node.js prin
-[`trucksim-telemetry`](https://github.com/kniffen/TruckSim-Telemetry) (necesită
-[scs-sdk-plugin](https://github.com/RenCloud/scs-sdk-plugin) instalat în joc).
+[`trucksim-telemetry`](https://github.com/kniffen/TruckSim-Telemetry), care la
+rândul lui are nevoie de
+[scs-sdk-plugin](https://github.com/RenCloud/scs-sdk-plugin) instalat în joc --
+aplicația face asta AUTOMAT (`plugin/scs-telemetry.dll`, detectat prin Steam
+la fiecare pornire; vezi Setări → "Plugin SDK telemetrie" pentru
+verificare/instalare manuală dacă detectarea automată nu găsește jocul).
 
 ## Dezvoltare
 

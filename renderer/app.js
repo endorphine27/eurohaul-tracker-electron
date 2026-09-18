@@ -44,6 +44,46 @@ window.eurohaul.onPlayTripDeliveredSound(() => {
   audio.play().catch(() => {});
 });
 
+// Instalarea automata ruleaza oricum tacut la fiecare pornire (main.js) --
+// aici doar afisam rezultatul si oferim un buton manual de reincercare /
+// alegere folder, pentru cazul cand detectarea automata nu gaseste jocul.
+function formatPluginResult(res) {
+  if (res.canceled) return null; // userul a inchis dialogul de alegere folder, nu afisam nimic
+  const lines = [];
+  if (res.platform && res.platform !== 'win32') {
+    return 'Detectarea automată funcționează doar pe Windows.';
+  }
+  if (res.pluginsDir) {
+    return `✅ Plugin instalat în ${res.pluginsDir}`;
+  }
+  if (res.ets2 || res.ats) {
+    if (res.ets2) lines.push(`✅ ETS2: plugin instalat în ${res.ets2}`);
+    if (res.ats) lines.push(`✅ ATS: plugin instalat în ${res.ats}`);
+  }
+  if (!res.ets2 && !res.ats && !res.pluginsDir) {
+    lines.push(res.error || '❌ Niciun joc găsit automat prin Steam.');
+  }
+  if (Array.isArray(res.errors)) lines.push(...res.errors.map((e) => `⚠️ ${e}`));
+  return lines.join(' · ');
+}
+
+function runPluginAutoInstall() {
+  const statusEl = document.getElementById('plugin-status');
+  statusEl.textContent = 'Se verifică…';
+  window.eurohaul.autoInstallPlugin().then((res) => {
+    statusEl.textContent = formatPluginResult(res) || '—';
+  });
+}
+document.getElementById('plugin-autoinstall').addEventListener('click', runPluginAutoInstall);
+document.getElementById('plugin-choosefolder').addEventListener('click', () => {
+  const statusEl = document.getElementById('plugin-status');
+  window.eurohaul.chooseFolderAndInstallPlugin().then((res) => {
+    const text = formatPluginResult(res);
+    if (text) statusEl.textContent = text;
+  });
+});
+runPluginAutoInstall();
+
 // Comutatorul "Bară info" din Acasă -- pornea/oprea vizual, dar nu era
 // conectat la nimic (bug real: click pe el nu facea absolut nimic).
 const barToggle = document.getElementById('toggle-bar');

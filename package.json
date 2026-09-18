@@ -27,7 +27,8 @@
       "assets/**/*"
     ],
     "extraResources": [
-      { "from": "sounds", "to": "sounds", "filter": ["**/*"] }
+      { "from": "sounds", "to": "sounds", "filter": ["**/*"] },
+      { "from": "plugin", "to": "plugin", "filter": ["**/*"] }
     ],
     "win": {
       "icon": "assets/icon.ico",

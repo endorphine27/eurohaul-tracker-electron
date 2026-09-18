@@ -1,8 +1,9 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { startTelemetry } = require('./main/telemetry');
 const { createTripReporter } = require('./main/tripReporter');
+const pluginInstaller = require('./main/pluginInstaller');
 const { createBarWindow } = require('./main/barWindow');
 const settingsStore = require('./main/settingsStore');
 const { ACCENT_PRESETS, POSITIONS } = require('./main/accentPresets');
@@ -93,6 +94,22 @@ ipcMain.handle('sound:getOverspeedPath', () => fileUrl(soundPathForSetting('aler
 ipcMain.handle('sound:getTripStartPath', () => fileUrl(soundPathForSetting('alert_tripstart_sound_file')));
 ipcMain.handle('sound:getTripDeliveredPath', () => fileUrl(soundPathForSetting('alert_tripdelivered_sound_file')));
 ipcMain.handle('sound:listFiles', () => listSoundFiles());
+
+function pluginPathOptions() {
+  return { appIsPackaged: app.isPackaged, appDir: __dirname, resourcesPath: process.resourcesPath };
+}
+
+ipcMain.handle('plugin:autoInstall', () => pluginInstaller.autoInstall(pluginPathOptions()));
+
+ipcMain.handle('plugin:chooseFolderAndInstall', async () => {
+  if (!mainWindow || mainWindow.isDestroyed()) return { ok: false, error: 'Fereastra principala nu e disponibila.' };
+  const picked = await dialog.showOpenDialog(mainWindow, {
+    title: 'Alege folderul jocului (ETS2/ATS) sau direct bin\\win_x64',
+    properties: ['openDirectory'],
+  });
+  if (picked.canceled || !picked.filePaths[0]) return { ok: false, canceled: true };
+  return pluginInstaller.installToChosenFolder(picked.filePaths[0], pluginPathOptions());
+});
 
 ipcMain.on('bar:open-settings', () => {
   if (!mainWindow || mainWindow.isDestroyed()) {
@@ -244,6 +261,18 @@ app.whenReady().then(() => {
   barHandle = createBarWindow(settingsStore.get('bar_position'));
   applyBarStyleFromSettings();
   applyBarVisibility();
+
+  // Detectare + instalare automata a pluginului SDK (scs-telemetry.dll) in
+  // ETS2/ATS, la fiecare pornire -- ca la instalatorul Python, dar facuta din
+  // aplicatie (nu doar o data la instalare), ca sa se auto-repare si daca
+  // jocul e instalat/mutat DUPA tracker. Silentios: doar logam rezultatul,
+  // nu blocam pornirea daca esueaza (Steam neinstalat, fara Windows etc.).
+  try {
+    const pluginResult = pluginInstaller.autoInstall(pluginPathOptions());
+    console.log('[plugin] auto-instalare:', pluginResult);
+  } catch (err) {
+    console.error('[plugin] auto-instalare esuata', err);
+  }
 
   telemetryHandle = startTelemetry();
   telemetryHandle.onChange((snapshot) => {

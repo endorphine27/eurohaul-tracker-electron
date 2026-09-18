@@ -43,4 +43,7 @@ contextBridge.exposeInMainWorld('eurohaul', {
   },
   getTripDeliveredSoundPath: () => ipcRenderer.invoke('sound:getTripDeliveredPath'),
   listSoundFiles: () => ipcRenderer.invoke('sound:listFiles'),
+
+  autoInstallPlugin: () => ipcRenderer.invoke('plugin:autoInstall'),
+  chooseFolderAndInstallPlugin: () => ipcRenderer.invoke('plugin:chooseFolderAndInstall'),
 });
