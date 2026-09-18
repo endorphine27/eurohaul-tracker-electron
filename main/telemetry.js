@@ -1,25 +1,4 @@
-const path = require('path');
-const { truckSimTelemetry } = require('trucksim-telemetry');
-
-// Diagnostic temporar: trucksim-telemetry (getBuffer.ts) prinde ORICE eroare
-// nativa si intoarce null, fara sa spuna ce s-a intamplat -- inclusiv
-// mesajele noastre imbunatatite din native-fix/ (cu GetLastError() real)
-// raman ascunse. Apelam direct modulul nativ, ocolind acel try/catch, ca sa
-// vedem eroarea adevarata macar o data la pornire.
-function logNativeTelemetryDiagnostic() {
-  try {
-    const pkgJsonPath = require.resolve('trucksim-telemetry/package.json');
-    const nativePath = path.join(path.dirname(pkgJsonPath), 'build', 'Release', 'scsSDKTelemetry.node');
-    const native = require(nativePath);
-    const buf = native.getBuffer('Local\\SCSTelemetry');
-    const info = buf
-      ? { lungime: buf.length, primii16Bytes: buf.subarray(0, 16).toString('hex'), byte0_sdkActive: buf.readUInt8(0) }
-      : { lungime: null };
-    console.log('[telemetry] diagnostic: apelul nativ getBuffer() a reusit:', JSON.stringify(info));
-  } catch (err) {
-    console.log('[telemetry] diagnostic: eroare REALA de la modulul nativ:', err.message);
-  }
-}
+const { getData } = require('trucksim-telemetry');
 
 // Spre deosebire de Python (unde citeam un id brut si il mapam noi la un
 // nume "frumos"), trucksim-telemetry ne da deja numele de afisat direct
@@ -119,57 +98,57 @@ function trailerDamagePct(trailers) {
   return averageWear([t.wearChassis, t.wearWheels, t.wearBody]);
 }
 
-// Porneste ascultarea telemetriei si intoarce { getSnapshot, onChange, telemetry }.
-// `onChange(cb)` cheama cb(snapshot) la fiecare actualizare (acelasi ritm
-// intern al SDK-ului, de obicei ~20/s -- suficient de des ca sa nu mai fie
-// nevoie de firul separat "rapid" din versiunea Python).
-// Diagnostic temporar (probleme raportate cu "offline" desi jocul ruleaza) --
-// logam starea bruta la conectare/deconectare si periodic cat timp ruleaza,
-// ca sa vedem exact ce raporteaza SDK-ul pe masina utilizatorului. De scos
-// dupa ce gasim cauza reala.
+// Porneste ascultarea telemetriei si intoarce { getSnapshot, onChange }.
+// `onChange(cb)` cheama cb(snapshot) la fiecare actualizare.
+//
+// NU folosim `truckSimTelemetry()` (bucla interna a pachetului, la ~60Hz) --
+// depanare reala la un utilizator a aratat ca deschiderea/inchiderea
+// memoriei partajate de 60 ori/secunda esueaza intermitent pe unele masini
+// (sdkActive ramane permanent false), in timp ce un apel IZOLAT, facut mai
+// rar, prin `getData()`, citeste corect datele (sdkActive:true confirmat).
+// Facem propriul interval, mult mai relaxat -- suficient de des pentru o
+// bara de informatii, fara sa suprasolicite deschiderea fisierului mapat.
 function startTelemetry() {
   const listeners = [];
   let latest = normalize(null);
   let lastLogAt = 0;
   let loggedFirst = false;
 
-  let telemetry;
-  try {
-    telemetry = truckSimTelemetry({
-      onUpdate: (data) => {
-        latest = normalize(data);
-        const now = Date.now();
-        if (!loggedFirst) {
-          loggedFirst = true;
-          console.log('[telemetry] primul update brut:', JSON.stringify({
-            sdkActive: data.sdkActive, game: data.game, paused: data.paused,
-            speed: data.speed, truckOdometer: data.truckOdometer,
-          }));
-        }
-        if (now - lastLogAt > 3000) {
-          lastLogAt = now;
-          console.log('[telemetry] stare curenta:', JSON.stringify({
-            sdkActive: data.sdkActive, game: data.game, speed: data.speed,
-          }));
-        }
-        for (const cb of listeners) {
-          try { cb(latest); } catch (err) { console.error('[telemetry] listener error', err); }
-        }
-      },
-    });
-    telemetry.on('connected', () => console.log('[telemetry] eveniment "connected" primit de la SDK'));
-    telemetry.on('disconnected', () => console.log('[telemetry] eveniment "disconnected" primit de la SDK'));
-  } catch (err) {
-    console.error('[telemetry] truckSimTelemetry() a esuat la initializare:', err);
+  function poll() {
+    let data = null;
+    try {
+      data = getData();
+    } catch (err) {
+      console.error('[telemetry] getData() a aruncat o eroare', err);
+    }
+    latest = normalize(data);
+
+    const now = Date.now();
+    if (!loggedFirst && data) {
+      loggedFirst = true;
+      console.log('[telemetry] primul update brut:', JSON.stringify({
+        sdkActive: data.sdkActive, game: data.game, paused: data.paused,
+        speed: data.speed, truckOdometer: data.truckOdometer,
+      }));
+    }
+    if (now - lastLogAt > 3000) {
+      lastLogAt = now;
+      console.log('[telemetry] stare curenta:', JSON.stringify({
+        sdkActive: data ? data.sdkActive : null,
+        game: data ? data.game : null,
+        speed: data ? data.speed : null,
+      }));
+    }
+
+    for (const cb of listeners) {
+      try { cb(latest); } catch (err) { console.error('[telemetry] listener error', err); }
+    }
   }
 
-  // La fiecare 5s, verificam DIRECT modulul nativ (vezi mai sus) -- daca
-  // sdkActive ramane false, asta ne spune de ce, in loc sa ghicim.
-  setInterval(logNativeTelemetryDiagnostic, 5000);
-  logNativeTelemetryDiagnostic();
+  setInterval(poll, 200);
+  poll();
 
   return {
-    telemetry,
     getSnapshot: () => latest,
     onChange: (cb) => listeners.push(cb),
   };
