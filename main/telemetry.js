@@ -55,7 +55,28 @@ function normalize(d) {
     wearChassis: d.wearChassis ?? null,
     wearWheels: d.wearWheels ?? null,
     restMinutes: d.restStop ?? null,
+    gameTimeMinutes: typeof d.timeAbs === 'number' ? d.timeAbs : null,
+    truckDamagePct: averageWear([d.wearEngine, d.wearTransmission, d.wearCabin, d.wearChassis, d.wearWheels]),
+    trailerDamagePct: trailerDamagePct(d.trailers),
   };
+}
+
+// Media daunelor camionului (0..1 fiecare) -> procent intreg. La fel ca la
+// Trucky, care afiseaza un singur procent agregat pentru camion.
+function averageWear(values) {
+  const nums = values.filter((v) => typeof v === 'number');
+  if (!nums.length) return null;
+  return Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 100);
+}
+
+// Prima remorca atasata (majoritatea curselor au una singura); wearBody
+// acopera si dauna incarcaturii vizual pe caroserie, la fel ca wear-urile
+// camionului mai sus.
+function trailerDamagePct(trailers) {
+  if (!Array.isArray(trailers) || !trailers.length) return null;
+  const t = trailers.find((tr) => tr && tr.attached) || trailers[0];
+  if (!t || !t.attached) return null;
+  return averageWear([t.wearChassis, t.wearWheels, t.wearBody]);
 }
 
 // Porneste ascultarea telemetriei si intoarce { getSnapshot, onChange, telemetry }.

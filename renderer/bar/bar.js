@@ -39,8 +39,18 @@ function fmtEta(minutes) {
   return h > 0 ? `${h}h ${mm}m` : `${mm}m`;
 }
 
+// timeAbs vine ca minute absolute din SDK -- ne intereseaza doar ora din zi.
+function fmtGameTime(minutes) {
+  if (minutes === null || minutes === undefined) return '—';
+  const total = Math.floor(minutes) % 1440;
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
 function buildParts(s) {
   const parts = [];
+  if (s.gameTimeMinutes !== null) parts.push(`🕒 ${fmtGameTime(s.gameTimeMinutes)}`);
   if (s.onTrip) {
     parts.push(`📍 ${s.routeFrom || '?'} → ${s.routeTo || '?'}`);
     if (s.kmRemaining !== null) parts.push(`🛣 ${fmt(s.kmRemaining)} km`);
@@ -51,6 +61,8 @@ function buildParts(s) {
   }
   if (s.speedKmh !== null) parts.push(`⏱ ${fmt(s.speedKmh)} km/h`);
   if (s.fuelPct !== null) parts.push(`⛽ ${s.fuelPct}%`);
+  if (s.truckDamagePct !== null) parts.push(`🔧 ${s.truckDamagePct}%`);
+  if (s.trailerDamagePct !== null) parts.push(`🚛 ${s.trailerDamagePct}%`);
   if (s.odometerKm !== null) parts.push(`🧭 ${fmt(s.odometerKm)} km`);
   return parts;
 }
