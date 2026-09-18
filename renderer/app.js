@@ -137,7 +137,14 @@ function renderProfilePill() {
   const pf = lastProfile;
   if (!pf.ok) return;
   setText('profile-name', pf.display_name || '—');
-  setText('avatar', initials(pf.display_name));
+  const avatarEl = document.getElementById('avatar');
+  if (avatarEl) {
+    if (pf.avatar_url) {
+      avatarEl.innerHTML = `<img src="${pf.avatar_url}" alt="" />`;
+    } else {
+      avatarEl.textContent = initials(pf.display_name);
+    }
+  }
   const rankBadge = document.getElementById('rank-badge');
   if (rankBadge) rankBadge.textContent = (pf.rank || '').toUpperCase();
   setText('profile-stars', stars(pf.rating));

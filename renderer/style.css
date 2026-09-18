@@ -74,7 +74,9 @@ svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width:
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
   box-shadow: inset 0 0 0 1px rgba(240, 198, 116, 0.25);
+  overflow: hidden;
 }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
 
 .profile-info { flex: 1; min-width: 0; }
 .profile-name { font-size: 13px; font-weight: 600; }
