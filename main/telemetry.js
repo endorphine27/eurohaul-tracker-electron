@@ -58,6 +58,25 @@ function normalize(d) {
     gameTimeMinutes: typeof d.timeAbs === 'number' ? d.timeAbs : null,
     truckDamagePct: averageWear([d.wearEngine, d.wearTransmission, d.wearCabin, d.wearChassis, d.wearWheels]),
     trailerDamagePct: trailerDamagePct(d.trailers),
+    jobMarket: d.jobMarket || null,
+    // Folosite DOAR de tripReporter (raportarea curselor catre server), nu de
+    // interfata -- vezi main/tripReporter.js. Nu redenumim/rotunjim aici ca
+    // sa ramana usor de comparat 1:1 cu documentatia SDK-ului.
+    coordX: typeof d.coordinateX === 'number' ? d.coordinateX : null,
+    coordZ: typeof d.coordinateZ === 'number' ? d.coordinateZ : null,
+    timeAbsDelivery: typeof d.timeAbsDelivery === 'number' ? d.timeAbsDelivery : null,
+    jobDelivered: !!d.jobDelivered,
+    jobDeliveredRevenue: typeof d.jobDeliveredRevenue === 'bigint' ? Number(d.jobDeliveredRevenue) : null,
+    jobDeliveredDistanceKm: typeof d.jobDeliveredDistanceKm === 'number' ? d.jobDeliveredDistanceKm : null,
+    jobDeliveredCargoDamage: typeof d.jobDeliveredCargoDamage === 'number' ? d.jobDeliveredCargoDamage : null,
+    jobCancelled: !!d.jobCancelled,
+    jobCancelledPenalty: typeof d.jobCancelledPenalty === 'bigint' ? Number(d.jobCancelledPenalty) : null,
+    // Sloturile astea raman "agatate" in SDK dupa prima amenda (bug cunoscut,
+    // vezi memoria vtc-fines-sdk-replay) -- tripReporter le trateaza ca
+    // schimbari de SEMNATURA (offence+suma), nu ca evenimente noi de fiecare
+    // data cand sunt !=0.
+    fineOffenceRaw: d.fineOffence || null,
+    fineAmountRaw: typeof d.fineAmount === 'bigint' ? Number(d.fineAmount) : null,
   };
 }
 

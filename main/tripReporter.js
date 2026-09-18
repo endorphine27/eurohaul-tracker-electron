@@ -1,0 +1,261 @@
+const crypto = require('crypto');
+const api = require('./api');
+
+// Reface exact ce facea versiunea Python (log_trip/log_sample/push_live_status/
+// log_fine), care lipsea complet din rescrierea Electron -- fara asta, contul
+// nu mai acumuleaza curse/km/castig/amenzi si harta Live + panoul mobil raman
+// goale pentru orice sofer care foloseste tracker-ul nou.
+//
+// Logica GREA (venit, uzura, contracte, rating) ramane pe server -- aici doar
+// trimitem la momentele potrivite exact datele pe care log_trip.php/etc. le
+// asteapta deja (vezi vtc/api/*.php).
+
+const SAMPLE_INTERVAL_MS = 20000;
+const LIVE_STATUS_INTERVAL_MS = 2000;
+// Marja peste limita de drum ca sa numaram o secunda ca "overspeed" -- doar un
+// indiciu trimis catre server (watchdog pentru amenzi posibil dezactivate in
+// joc), nu afecteaza direct plata.
+const OVERSPEED_MARGIN_KMH = 8;
+
+function pct(v) {
+  return typeof v === 'number' ? v * 100 : null;
+}
+
+function randomEventId() {
+  return crypto.randomBytes(16).toString('hex');
+}
+
+// `getToken` e o functie (nu un token fix) fiindca userul se poate loga/delo-
+// ga in timp ce aplicatia ruleaza -- vrem mereu valoarea CURENTA.
+function createTripReporter({ getToken, telemetry }) {
+  let running = false;
+  let tripId = null;
+  let wasOnTrip = false;
+  let lastTickAtMs = null;
+  let drivingSeconds = 0;
+  let overspeedSeconds = 0;
+  let fuelRefueled = 0;
+  let lastFuelLevel = null;
+  let pendingDelivery = null; // {revenue, distanceKm, cargoDamage} din tick-ul cu jobDelivered=true
+  let lastFineSig = null;
+  let fineBaselinePrimed = false;
+  let sampleTimer = null;
+  let liveStatusTimer = null;
+
+  function resetTripAccumulators() {
+    drivingSeconds = 0;
+    overspeedSeconds = 0;
+    fuelRefueled = 0;
+    lastFuelLevel = null;
+    lastTickAtMs = null;
+    pendingDelivery = null;
+  }
+
+  async function handleTripStart(s) {
+    const token = getToken();
+    if (!token || tripId) return;
+    resetTripAccumulators();
+    const fields = {
+      source_city: s.routeFrom,
+      source_company: s.companyFrom,
+      destination_city: s.routeTo,
+      destination_company: s.companyTo,
+      cargo: s.cargo,
+      cargo_mass_kg: s.cargoMassKg,
+      planned_distance_km: s.plannedDistanceKm,
+      truck_name: [s.truckBrand, s.truckModel].filter(Boolean).join(' ') || null,
+      truck_brand: s.truckBrand,
+      truck_model: s.truckModel,
+      job_market: s.jobMarket || 'unknown',
+    };
+    try {
+      const res = await api.startTrip(token, fields, s.odometerKm, s.fuelLiters);
+      if (res && res.ok && res.trip_id) tripId = res.trip_id;
+    } catch (err) {
+      console.error('[tripReporter] startTrip esuat', err);
+    }
+  }
+
+  async function handleTripEnd(s) {
+    const token = getToken();
+    const activeTripId = tripId;
+    tripId = null; // eliberam imediat, ca o cursa noua sa nu se amestece cu asta
+    if (!token || !activeTripId) {
+      resetTripAccumulators();
+      return;
+    }
+
+    const delivered = pendingDelivery;
+    // "la timp" doar daca avem ambele repere de timp din SDK; altfel nu
+    // penalizam fara sa stim sigur.
+    const onTime = (delivered && typeof s.timeAbsDelivery === 'number' && typeof s.gameTimeMinutes === 'number')
+      ? s.gameTimeMinutes <= s.timeAbsDelivery
+      : true;
+
+    const payload = {
+      odometer_km: s.odometerKm,
+      fuel_liters: s.fuelLiters,
+      cargo_damage_percent: delivered ? pct(delivered.cargoDamage) : null,
+      wear_engine_percent: pct(s.wearEngine),
+      wear_transmission_percent: pct(s.wearTransmission),
+      wear_cabin_percent: pct(s.wearCabin),
+      wear_chassis_percent: pct(s.wearChassis),
+      wear_wheels_percent: pct(s.wearWheels),
+      trailer_damage_percent: s.trailerDamagePct,
+      fuel_refueled_liters: Math.round(fuelRefueled * 10) / 10,
+      final_revenue: delivered ? delivered.revenue : null,
+      final_delivered_distance: delivered ? delivered.distanceKm : null,
+      delivery_status: onTime ? 'on_time' : 'late',
+      overspeed_seconds: Math.round(overspeedSeconds),
+      driving_seconds: Math.round(drivingSeconds),
+      fuel_avg_consumption: s.fuelAvgConsumption,
+    };
+    resetTripAccumulators();
+    try {
+      await api.endTrip(token, activeTripId, payload);
+    } catch (err) {
+      console.error('[tripReporter] endTrip esuat', err);
+    }
+  }
+
+  // Bug cunoscut al SDK-ului: sloturile fineOffence/fineAmount raman "agatate"
+  // cu ultima amenda si sunt reemise la nesfarsit, inclusiv pe curse noi. Nu
+  // tratam o valoare nenula ca eveniment nou decat daca s-a SCHIMBAT fata de
+  // ultima citire, si "amorsam" (fara sa trimitem) orice se afla deja in slot
+  // la prima citire de dupa pornirea raportarii.
+  async function handleFineCheck(s) {
+    const hasFine = !!s.fineOffenceRaw && typeof s.fineAmountRaw === 'number' && s.fineAmountRaw > 0;
+
+    if (!fineBaselinePrimed) {
+      lastFineSig = hasFine ? `${s.fineOffenceRaw}:${s.fineAmountRaw}` : null;
+      fineBaselinePrimed = true;
+      return;
+    }
+    if (!hasFine) {
+      lastFineSig = null;
+      return;
+    }
+    const sig = `${s.fineOffenceRaw}:${s.fineAmountRaw}`;
+    if (sig === lastFineSig) return;
+    lastFineSig = sig;
+
+    if (!tripId) return; // fara cursa activa nu avem la ce trip_id sa o atasam
+    const token = getToken();
+    if (!token) return;
+    try {
+      await api.logFine(token, tripId, s.fineAmountRaw, s.fineOffenceRaw, randomEventId());
+    } catch (err) {
+      console.error('[tripReporter] logFine esuat', err);
+    }
+  }
+
+  function onTick(s) {
+    if (!running || !s.connected) return;
+    const now = Date.now();
+
+    handleFineCheck(s).catch(() => {});
+
+    if (tripId && lastTickAtMs != null) {
+      // clamp la 5s: daca jocul a fost in pauza/minimizat, nu vrem sa adunam
+      // ore intregi dintr-un singur salt de timestamp.
+      const dtSec = Math.min(5, Math.max(0, (now - lastTickAtMs) / 1000));
+      if ((s.speedKmh ?? 0) > 1) drivingSeconds += dtSec;
+      if (s.speedLimitKmh != null && s.speedKmh != null && s.speedKmh > s.speedLimitKmh + OVERSPEED_MARGIN_KMH) {
+        overspeedSeconds += dtSec;
+      }
+      if (lastFuelLevel != null && typeof s.fuelLiters === 'number' && s.fuelLiters > lastFuelLevel) {
+        fuelRefueled += s.fuelLiters - lastFuelLevel;
+      }
+    }
+    lastFuelLevel = typeof s.fuelLiters === 'number' ? s.fuelLiters : lastFuelLevel;
+    lastTickAtMs = now;
+
+    // SDK-ul tine cifrele finale doar 1 tick -- le prindem imediat si le
+    // folosim putin mai tarziu, cand onTrip chiar devine false.
+    if (s.jobDelivered) {
+      pendingDelivery = {
+        revenue: s.jobDeliveredRevenue,
+        distanceKm: s.jobDeliveredDistanceKm,
+        cargoDamage: s.jobDeliveredCargoDamage,
+      };
+    }
+
+    if (s.onTrip && !wasOnTrip) {
+      wasOnTrip = true;
+      handleTripStart(s).catch(() => {});
+    } else if (!s.onTrip && wasOnTrip) {
+      wasOnTrip = false;
+      handleTripEnd(s).catch(() => {});
+    }
+  }
+
+  function flushSample() {
+    if (!running || !tripId) return;
+    const token = getToken();
+    if (!token) return;
+    const s = telemetry.getSnapshot();
+    if (!s.connected) return;
+    const sample = {
+      coord_x: s.coordX, coord_z: s.coordZ,
+      speed_kmh: s.speedKmh, odometer_km: s.odometerKm,
+      sampled_at: new Date().toISOString(),
+    };
+    api.logSample(token, tripId, [sample]).catch((err) => console.error('[tripReporter] logSample esuat', err));
+  }
+
+  function flushLiveStatus() {
+    if (!running) return;
+    const token = getToken();
+    if (!token) return;
+    const s = telemetry.getSnapshot();
+    const payload = {
+      connected: s.connected,
+      on_trip: s.onTrip,
+      route_from: s.routeFrom, route_to: s.routeTo,
+      company_from: s.companyFrom, company_to: s.companyTo,
+      cargo: s.cargo, cargo_mass_kg: s.cargoMassKg,
+      km_remaining: s.kmRemaining, eta_minutes: s.etaMinutes,
+      speed_kmh: s.speedKmh, speed_limit_kmh: s.speedLimitKmh,
+      fuel_pct: s.fuelPct, odometer_km: s.odometerKm,
+      rest_minutes: s.restMinutes,
+      wear_engine_pct: pct(s.wearEngine),
+      wear_transmission_pct: pct(s.wearTransmission),
+      wear_cabin_pct: pct(s.wearCabin),
+      wear_chassis_pct: pct(s.wearChassis),
+      wear_wheels_pct: pct(s.wearWheels),
+      trailer_damage_pct: s.trailerDamagePct,
+    };
+    api.pushLiveStatus(token, payload).catch((err) => console.error('[tripReporter] pushLiveStatus esuat', err));
+  }
+
+  // Un singur abonament, pe toata durata vietii aplicatiei -- start()/stop()
+  // doar comuta flag-ul `running` (verificat la inceputul lui onTick) in loc
+  // sa (dez)aboneze de fiecare data, ca sa nu se acumuleze listeneri
+  // duplicati la fiecare ciclu login/logout.
+  telemetry.onChange(onTick);
+
+  function start() {
+    if (running) return;
+    running = true;
+    wasOnTrip = false;
+    tripId = null;
+    resetTripAccumulators();
+    lastFineSig = null;
+    fineBaselinePrimed = false;
+    sampleTimer = setInterval(flushSample, SAMPLE_INTERVAL_MS);
+    liveStatusTimer = setInterval(flushLiveStatus, LIVE_STATUS_INTERVAL_MS);
+  }
+
+  function stop() {
+    running = false;
+    if (sampleTimer) clearInterval(sampleTimer);
+    if (liveStatusTimer) clearInterval(liveStatusTimer);
+    sampleTimer = null;
+    liveStatusTimer = null;
+    tripId = null;
+  }
+
+  return { start, stop };
+}
+
+module.exports = { createTripReporter };

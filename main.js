@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { startTelemetry } = require('./main/telemetry');
+const { createTripReporter } = require('./main/tripReporter');
 const { createBarWindow } = require('./main/barWindow');
 const settingsStore = require('./main/settingsStore');
 const { ACCENT_PRESETS, POSITIONS } = require('./main/accentPresets');
@@ -39,6 +40,7 @@ function overspeedSoundPath() {
 
 let mainWindow = null;
 let telemetryHandle = null;
+let tripReporter = null;
 let barHandle = null;
 let profilePoller = null;
 let hotkeysHandle = null;
@@ -201,6 +203,7 @@ ipcMain.handle('auth:login', async (_event, username, password) => {
     settingsStore.set('auth_token', result.token);
     settingsStore.set('auth_display_name', result.displayName || '');
     profilePoller.start();
+    tripReporter.start();
   }
   return result;
 });
@@ -209,6 +212,7 @@ ipcMain.on('auth:logout', () => {
   settingsStore.set('auth_token', '');
   settingsStore.set('auth_display_name', '');
   profilePoller.stop();
+  tripReporter.stop();
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('auth:loggedOut');
   }
@@ -252,6 +256,11 @@ app.whenReady().then(() => {
 
   startDiscordRpc(() => telemetryHandle.getSnapshot());
 
+  tripReporter = createTripReporter({
+    getToken: () => settingsStore.get('auth_token'),
+    telemetry: telemetryHandle,
+  });
+
   profilePoller = startProfilePoller(() => settingsStore.get('auth_token'));
   profilePoller.onChange((snapshot) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -260,6 +269,7 @@ app.whenReady().then(() => {
   });
   if (settingsStore.get('auth_token')) {
     profilePoller.start();
+    tripReporter.start();
   }
 
   hotkeysHandle = registerHotkeys({

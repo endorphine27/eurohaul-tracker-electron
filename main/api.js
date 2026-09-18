@@ -54,4 +54,40 @@ async function contractAction(token, contractId, action) {
   return data;
 }
 
-module.exports = { login, fetchProfile, fetchWhoami, contractAction, API_BASE };
+// ---------- Raportare curse (log_trip / log_sample / push_live_status /
+// log_fine) -- vezi main/tripReporter.js pentru starea care decide CAND se
+// cheama fiecare dintre astea. Aici doar transmitem, fara logica. ----------
+
+async function startTrip(token, fields, odometerKm, fuelLiters) {
+  const { data } = await postJson('log_trip.php', {
+    action: 'start', fields, odometer_km: odometerKm, fuel_liters: fuelLiters,
+  }, token);
+  return data;
+}
+
+async function endTrip(token, tripId, payload) {
+  const { data } = await postJson('log_trip.php', { action: 'end', trip_id: tripId, ...payload }, token);
+  return data;
+}
+
+async function logSample(token, tripId, samples) {
+  const { data } = await postJson('log_sample.php', { trip_id: tripId, samples }, token);
+  return data;
+}
+
+async function pushLiveStatus(token, payload) {
+  const { data } = await postJson('push_live_status.php', payload, token);
+  return data;
+}
+
+async function logFine(token, tripId, fineAmount, reason, eventId) {
+  const { data } = await postJson('log_fine.php', {
+    trip_id: tripId, fine_amount: fineAmount, reason, event_id: eventId,
+  }, token);
+  return data;
+}
+
+module.exports = {
+  login, fetchProfile, fetchWhoami, contractAction, API_BASE,
+  startTrip, endTrip, logSample, pushLiveStatus, logFine,
+};
