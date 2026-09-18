@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const api = require('./api');
+const tripState = require('./tripState');
 
 // Reface exact ce facea versiunea Python (log_trip/log_sample/push_live_status/
 // log_fine), care lipsea complet din rescrierea Electron -- fara asta, contul
@@ -28,6 +29,16 @@ function randomEventId() {
   return crypto.randomBytes(16).toString('hex');
 }
 
+// "Amprenta" cursei -- campuri stabile care nu se schimba in timpul aceleiasi
+// curse, folosite DOAR ca sa recunoastem daca o cursa reluata dupa un restart
+// de tracker e chiar cea persistata sau alta noua (vezi checkResume).
+function buildTripFingerprint(s) {
+  return JSON.stringify([
+    s.routeFrom, s.companyFrom, s.routeTo, s.companyTo,
+    s.cargo, s.cargoMassKg, s.plannedDistanceKm, s.truckBrand, s.truckModel,
+  ]);
+}
+
 // `getToken` e o functie (nu un token fix) fiindca userul se poate loga/delo-
 // ga in timp ce aplicatia ruleaza -- vrem mereu valoarea CURENTA.
 function createTripReporter({ getToken, telemetry, onTripStart, onTripDelivered }) {
@@ -44,6 +55,10 @@ function createTripReporter({ getToken, telemetry, onTripStart, onTripDelivered 
   let fineBaselinePrimed = false;
   let sampleTimer = null;
   let liveStatusTimer = null;
+  // Cursa persistata pe disc la ultima pornire a aplicatiei (vezi tripState.js)
+  // -- verificata O SINGURA DATA, la primul tick conectat de dupa start().
+  let resumeCandidate = null;
+  let resumeChecked = true;
 
   function resetTripAccumulators() {
     drivingSeconds = 0;
@@ -73,7 +88,10 @@ function createTripReporter({ getToken, telemetry, onTripStart, onTripDelivered 
     };
     try {
       const res = await api.startTrip(token, fields, s.odometerKm, s.fuelLiters);
-      if (res && res.ok && res.trip_id) tripId = res.trip_id;
+      if (res && res.ok && res.trip_id) {
+        tripId = res.trip_id;
+        tripState.save({ tripId, fingerprint: buildTripFingerprint(s) });
+      }
     } catch (err) {
       console.error('[tripReporter] startTrip esuat', err);
     }
@@ -83,6 +101,7 @@ function createTripReporter({ getToken, telemetry, onTripStart, onTripDelivered 
     const token = getToken();
     const activeTripId = tripId;
     tripId = null; // eliberam imediat, ca o cursa noua sa nu se amestece cu asta
+    tripState.clear();
     if (!token || !activeTripId) {
       resetTripAccumulators();
       return;
@@ -162,8 +181,35 @@ function createTripReporter({ getToken, telemetry, onTripStart, onTripDelivered 
     }
   }
 
+  // Daca tracker-ul a fost inchis complet (nu doar jocul) cat o cursa era in
+  // desfasurare, la repornire nu mai stim in memorie ca era deja pornita --
+  // fara asta am trimite un al doilea "start" la server pentru ACEEASI cursa
+  // (log_trip.php nu verifica daca mai exista deja una activa -> rand
+  // duplicat, orfan). Comparam "amprenta" jobului curent din joc cu cea
+  // salvata: daca se potriveste, reluam acelasi trip_id fara sa mai pornim
+  // nimic; daca nu (livrata/anulata/alt job cat timp am fost inchisi),
+  // inchidem best-effort cursa orfana pe server ca sa nu ramana agatata la
+  // nesfarsit in "in_progress".
+  function checkResume(s) {
+    resumeChecked = true;
+    if (!resumeCandidate) return;
+    const rc = resumeCandidate;
+    resumeCandidate = null;
+    if (s.onTrip && buildTripFingerprint(s) === rc.fingerprint) {
+      tripId = rc.tripId;
+      wasOnTrip = true;
+      console.log('[tripReporter] cursa reluata dupa restart tracker, trip_id=', tripId);
+      return;
+    }
+    const token = getToken();
+    if (token) {
+      api.endTrip(token, rc.tripId, { delivery_status: 'cancelled' }).catch(() => {});
+    }
+  }
+
   function onTick(s) {
     if (!running || !s.connected) return;
+    if (!resumeChecked) checkResume(s);
     const now = Date.now();
 
     handleFineCheck(s).catch(() => {});
@@ -258,6 +304,11 @@ function createTripReporter({ getToken, telemetry, onTripStart, onTripDelivered 
     running = true;
     wasOnTrip = false;
     tripId = null;
+    // Incarcam ce-am persistat ultima data (vezi checkResume) -- rulam
+    // verificarea la primul tick conectat, nu aici, fiindca abia atunci stim
+    // daca jobul din joc chiar se potriveste cu cel salvat.
+    resumeCandidate = tripState.load();
+    resumeChecked = !resumeCandidate;
     resetTripAccumulators();
     lastFineSig = null;
     fineBaselinePrimed = false;
