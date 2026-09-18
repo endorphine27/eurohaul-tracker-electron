@@ -15,6 +15,7 @@ let fields = {
   time: true, route: true, km_remaining: true, eta: true, cargo: true,
   speed: true, fuel: true, truck_damage: true, trailer_damage: true, odometer: true,
   rest: true, fuel_range: true, cruise_control: true,
+  gear_rpm: true, brakes: true, lights: true, arrival_clock: true,
 };
 let showSpeedSign = true;
 
@@ -81,6 +82,44 @@ function updateSpeedSign(s) {
   signEl.style.display = '';
 }
 
+// Treapta de mers: negativ = marsarier ("R1"), 0 = punct mort ("N").
+function fmtGear(g) {
+  if (typeof g !== 'number') return '—';
+  if (g === 0) return 'N';
+  return g < 0 ? `R${-g}` : String(g);
+}
+
+// Frana de mana + retarder apar DOAR cat timp sunt active (ca la
+// cruise control) -- presiunea aerului e mereu informativa.
+function buildBrakes(s) {
+  const parts = [];
+  if (typeof s.airPressure === 'number') parts.push(`🌬️${s.airPressure}psi`);
+  if (s.parkBrakeOn) parts.push('🅿️');
+  if (typeof s.retarderLevel === 'number' && s.retarderLevel > 0) parts.push(`🌀${s.retarderLevel}`);
+  return parts.join(' ');
+}
+
+// Cluster compact de lumini -- afisam DOAR iconitele celor active, ca un
+// indicator de bord real (nimic aprins = campul nu apare deloc pe bara).
+function buildLights(s) {
+  const parts = [];
+  if (s.blinkerLeftOn) parts.push('◀️');
+  if (s.blinkerRightOn) parts.push('▶️');
+  if (s.lightsHazard) parts.push('⚠️');
+  if (s.lightsBeacon) parts.push('🚨');
+  if (s.lightsBeamHigh) parts.push('🔆');
+  else if (s.lightsBeamLow) parts.push('🔅');
+  return parts.join(' ');
+}
+
+// Ora exacta de sosire (ora din joc + timpul ramas), ca alternativa la
+// numaratoarea "1h35m" -- utila cand vrei sa stii CAND ajungi, nu doar
+// cat mai dureaza.
+function fmtArrivalClock(gameTimeMinutes, etaMinutes) {
+  if (typeof gameTimeMinutes !== 'number' || typeof etaMinutes !== 'number') return null;
+  return fmtGameTime(gameTimeMinutes + etaMinutes);
+}
+
 function buildParts(s) {
   const parts = [];
   if (fields.time && s.gameTimeMinutes !== null) parts.push(`🕒 ${fmtGameTime(s.gameTimeMinutes)}`);
@@ -88,6 +127,10 @@ function buildParts(s) {
     if (fields.route) parts.push(`📍 ${s.routeFrom || '?'} → ${s.routeTo || '?'}`);
     if (fields.km_remaining && s.kmRemaining !== null) parts.push(`🛣 ${fmt(s.kmRemaining)} km`);
     if (fields.eta && s.etaMinutes !== null) parts.push(`🕐 ${fmtEta(s.etaMinutes)}`);
+    if (fields.arrival_clock) {
+      const arrival = fmtArrivalClock(s.gameTimeMinutes, s.etaMinutes);
+      if (arrival) parts.push(`🏁 ${arrival}`);
+    }
     if (fields.cargo && s.cargo) parts.push(`📦 ${s.cargo}`);
   } else if (!parts.length) {
     parts.push('Conectat');
@@ -100,6 +143,17 @@ function buildParts(s) {
   if (fields.odometer && s.odometerKm !== null) parts.push(`🧭 ${fmt(s.odometerKm)} km`);
   if (fields.rest && s.restMinutes !== null) parts.push(`😴 ${fmtEta(s.restMinutes)}`);
   if (fields.cruise_control && s.cruiseControl) parts.push('✅ CC');
+  if (fields.gear_rpm && (s.gear !== null || s.rpm !== null)) {
+    parts.push(`⚙️ ${fmtGear(s.gear)} · ${s.rpm !== null ? `${s.rpm} rpm` : '—'}`);
+  }
+  if (fields.brakes) {
+    const brakes = buildBrakes(s);
+    if (brakes) parts.push(brakes);
+  }
+  if (fields.lights) {
+    const lights = buildLights(s);
+    if (lights) parts.push(lights);
+  }
   return parts;
 }
 

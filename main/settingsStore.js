@@ -51,6 +51,10 @@ const DEFAULTS = {
   bar_field_rest: true,
   bar_field_fuel_range: true,
   bar_field_cruise_control: true,
+  bar_field_gear_rpm: true,
+  bar_field_brakes: true,
+  bar_field_lights: true,
+  bar_field_arrival_clock: true,
 };
 
 const BAR_FIELDS = [
@@ -67,6 +71,10 @@ const BAR_FIELDS = [
   { key: 'rest', label: 'Timp până la odihnă obligatorie' },
   { key: 'fuel_range', label: 'Autonomie combustibil (km)' },
   { key: 'cruise_control', label: 'Cruise control (doar când e activ)' },
+  { key: 'gear_rpm', label: 'Treaptă de viteză + turație motor' },
+  { key: 'brakes', label: 'Frâne (presiune aer, frână de mână, retarder)' },
+  { key: 'lights', label: 'Lumini active (faruri, avarii, girofar, semnalizare)' },
+  { key: 'arrival_clock', label: 'Ora exactă de sosire' },
 ];
 
 let cache = null;
