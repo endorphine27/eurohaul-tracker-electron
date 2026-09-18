@@ -1,4 +1,22 @@
+const path = require('path');
 const { truckSimTelemetry } = require('trucksim-telemetry');
+
+// Diagnostic temporar: trucksim-telemetry (getBuffer.ts) prinde ORICE eroare
+// nativa si intoarce null, fara sa spuna ce s-a intamplat -- inclusiv
+// mesajele noastre imbunatatite din native-fix/ (cu GetLastError() real)
+// raman ascunse. Apelam direct modulul nativ, ocolind acel try/catch, ca sa
+// vedem eroarea adevarata macar o data la pornire.
+function logNativeTelemetryDiagnostic() {
+  try {
+    const pkgJsonPath = require.resolve('trucksim-telemetry/package.json');
+    const nativePath = path.join(path.dirname(pkgJsonPath), 'build', 'Release', 'scsSDKTelemetry.node');
+    const native = require(nativePath);
+    native.getBuffer('Local\\SCSTelemetry');
+    console.log('[telemetry] diagnostic: apelul nativ getBuffer() a reusit fara eroare.');
+  } catch (err) {
+    console.log('[telemetry] diagnostic: eroare REALA de la modulul nativ:', err.message);
+  }
+}
 
 // Spre deosebire de Python (unde citeam un id brut si il mapam noi la un
 // nume "frumos"), trucksim-telemetry ne da deja numele de afisat direct
@@ -141,6 +159,11 @@ function startTelemetry() {
   } catch (err) {
     console.error('[telemetry] truckSimTelemetry() a esuat la initializare:', err);
   }
+
+  // La fiecare 5s, verificam DIRECT modulul nativ (vezi mai sus) -- daca
+  // sdkActive ramane false, asta ne spune de ce, in loc sa ghicim.
+  setInterval(logNativeTelemetryDiagnostic, 5000);
+  logNativeTelemetryDiagnostic();
 
   return {
     telemetry,
