@@ -16,6 +16,15 @@ function metersToKm(v) {
   return typeof v === 'number' ? v / 1000 : null;
 }
 
+// SDK-ul intoarce 0 pentru "fara limita afisata aici" (parcari, curtea
+// firmei, drum privat etc.), NU o limita reala de 0 km/h -- altfel orice
+// viteza > 0 acolo declanseaza gresit alerta de depasire si semnul arata
+// "0" in loc de "necunoscut".
+function speedLimitKmh(speedLimitMps) {
+  if (typeof speedLimitMps !== 'number' || speedLimitMps <= 0) return null;
+  return speedLimitMps * 3.6;
+}
+
 // Normalizeaza campurile brute din SDK (nume/unitati specifice SCS) in forma
 // pe care o foloseste interfata noastra -- acelasi rol pe care il avea
 // pick()/CANDIDATE_KEYS in versiunea Python.
@@ -29,7 +38,7 @@ function normalize(d) {
     truckModel: d.truckName || null,
     truckPlate: d.truckLicensePlate || null,
     speedKmh: metersPerSecondToKmh(d.speed),
-    speedLimitKmh: metersPerSecondToKmh(d.speedLimit),
+    speedLimitKmh: speedLimitKmh(d.speedLimit),
     fuelLiters: d.fuel ?? null,
     fuelCapacity: d.fuelCapacity ?? null,
     fuelPct: (typeof d.fuel === 'number' && typeof d.fuelCapacity === 'number' && d.fuelCapacity > 0)
