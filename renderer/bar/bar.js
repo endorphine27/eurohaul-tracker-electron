@@ -17,6 +17,7 @@ let fields = {
   rest: true, fuel_range: true, cruise_control: true,
   gear_rpm: true, brakes: true, lights: true, arrival_clock: true,
   cargo_damage: true, trailer_name: true, job_income: true,
+  fuel_consumption: true, real_clock: true,
 };
 let showSpeedSign = true;
 
@@ -123,6 +124,13 @@ function fmtArrivalClock(gameTimeMinutes, etaMinutes) {
 
 // Suma e in moneda nativa a jocului (mare, "bruta") -- doar formatare cu
 // separator de mii, ca la Trucky (showJobIncome arata acelasi numar brut).
+// Ceasul din realitate (ora calculatorului), nu ora din joc -- independent
+// de telemetrie, ca la showClock din Trucky.
+function fmtRealClock() {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+}
+
 function fmtMoney(amount, isAts) {
   if (typeof amount !== 'number') return null;
   return `${Math.round(amount).toLocaleString('ro-RO')}${isAts ? '$' : '€'}`;
@@ -131,6 +139,7 @@ function fmtMoney(amount, isAts) {
 function buildParts(s) {
   const parts = [];
   if (fields.time && s.gameTimeMinutes !== null) parts.push(`🕒 ${fmtGameTime(s.gameTimeMinutes)}`);
+  if (fields.real_clock) parts.push(`⏰ ${fmtRealClock()}`);
   if (s.onTrip) {
     if (fields.route) parts.push(`📍 ${s.routeFrom || '?'} → ${s.routeTo || '?'}`);
     if (fields.km_remaining && s.kmRemaining !== null) parts.push(`🛣 ${fmt(s.kmRemaining)} km`);
@@ -150,6 +159,7 @@ function buildParts(s) {
   if (fields.speed && s.speedKmh !== null) parts.push(`⏱ ${fmt(s.speedKmh)} km/h`);
   if (fields.fuel && s.fuelPct !== null) parts.push(`⛽ ${s.fuelPct}%`);
   if (fields.fuel_range && s.fuelRangeKm !== null) parts.push(`🛢 ${fmt(s.fuelRangeKm)} km`);
+  if (fields.fuel_consumption && s.fuelAvgConsumptionL100km !== null) parts.push(`📊 ${fmt(s.fuelAvgConsumptionL100km, 1)} l/100km`);
   if (fields.truck_damage && s.truckDamagePct !== null) parts.push(`🔧 ${s.truckDamagePct}%`);
   if (fields.trailer_damage && s.trailerDamagePct !== null) parts.push(`🚛 ${s.trailerDamagePct}%`);
   if (fields.cargo_damage && s.cargoDamagePct !== null) parts.push(`📉 ${s.cargoDamagePct}%`);

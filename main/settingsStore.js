@@ -58,6 +58,8 @@ const DEFAULTS = {
   bar_field_cargo_damage: true,
   bar_field_trailer_name: true,
   bar_field_job_income: true,
+  bar_field_fuel_consumption: true,
+  bar_field_real_clock: true,
 };
 
 const BAR_FIELDS = [
@@ -81,6 +83,8 @@ const BAR_FIELDS = [
   { key: 'cargo_damage', label: 'Daună marfă (live)' },
   { key: 'trailer_name', label: 'Numele remorcii' },
   { key: 'job_income', label: 'Venitul cursei curente' },
+  { key: 'fuel_consumption', label: 'Consum mediu combustibil (l/100km)' },
+  { key: 'real_clock', label: 'Ceas din realitate' },
 ];
 
 let cache = null;

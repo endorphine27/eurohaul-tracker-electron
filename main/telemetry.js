@@ -45,6 +45,9 @@ function normalize(d) {
     fuelPct: (typeof d.fuel === 'number' && typeof d.fuelCapacity === 'number' && d.fuelCapacity > 0)
       ? Math.round((d.fuel / d.fuelCapacity) * 100) : null,
     fuelAvgConsumption: d.fuelAvgConsumption ?? null,
+    // Doar pentru afisare (l/100km, ca la Trucky) -- fuelAvgConsumption ramane
+    // in l/km neschimbat, tripReporter.js il trimite asa la server.
+    fuelAvgConsumptionL100km: typeof d.fuelAvgConsumption === 'number' ? d.fuelAvgConsumption * 100 : null,
     fuelRangeKm: d.fuelRange ?? null,
     odometerKm: d.truckOdometer ?? null,
     routeFrom: d.citySrc || null,
