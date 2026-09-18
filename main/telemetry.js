@@ -11,8 +11,11 @@ function logNativeTelemetryDiagnostic() {
     const pkgJsonPath = require.resolve('trucksim-telemetry/package.json');
     const nativePath = path.join(path.dirname(pkgJsonPath), 'build', 'Release', 'scsSDKTelemetry.node');
     const native = require(nativePath);
-    native.getBuffer('Local\\SCSTelemetry');
-    console.log('[telemetry] diagnostic: apelul nativ getBuffer() a reusit fara eroare.');
+    const buf = native.getBuffer('Local\\SCSTelemetry');
+    const info = buf
+      ? { lungime: buf.length, primii16Bytes: buf.subarray(0, 16).toString('hex'), byte0_sdkActive: buf.readUInt8(0) }
+      : { lungime: null };
+    console.log('[telemetry] diagnostic: apelul nativ getBuffer() a reusit:', JSON.stringify(info));
   } catch (err) {
     console.log('[telemetry] diagnostic: eroare REALA de la modulul nativ:', err.message);
   }

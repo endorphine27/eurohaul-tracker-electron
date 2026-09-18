@@ -96,6 +96,24 @@ napi_value GetBuffer(napi_env env, napi_callback_info info) {
     } else {
       mappedSize = 0; // nu putem determina marimea in siguranta -- nu copiem nimic
     }
+    // getBuffer() e chemat la ~60Hz de bucla interna a trucksim-telemetry --
+    // fara limitare, ar inunda consola. O linie la ~3s e suficient de
+    // diagnostic.
+    static ULONGLONG lastLogTickFallback = 0;
+    ULONGLONG nowTick = GetTickCount64();
+    if (nowTick - lastLogTickFallback > 3000) {
+      lastLogTickFallback = nowTick;
+      fprintf(stderr, "[scsSDKTelemetry-fix] fallback folosit (32KB GetLastError=%lu) -- mappedSize=%zu\n", firstErr, mappedSize);
+      fflush(stderr);
+    }
+  } else {
+    static ULONGLONG lastLogTickDirect = 0;
+    ULONGLONG nowTick2 = GetTickCount64();
+    if (nowTick2 - lastLogTickDirect > 3000) {
+      lastLogTickDirect = nowTick2;
+      fprintf(stderr, "[scsSDKTelemetry-fix] mapare directa la 32KB reusita\n");
+      fflush(stderr);
+    }
   }
 #else // POSIX (Linux, macOS)
   int fd = shm_open(sharedMemoryName, O_RDONLY, 0400);
