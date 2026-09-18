@@ -1,5 +1,6 @@
 node_modules/
 dist/
+native-fix/build/
 *.log
 .DS_Store
 Thumbs.db
