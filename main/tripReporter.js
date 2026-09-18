@@ -14,8 +14,11 @@ const SAMPLE_INTERVAL_MS = 20000;
 const LIVE_STATUS_INTERVAL_MS = 2000;
 // Marja peste limita de drum ca sa numaram o secunda ca "overspeed" -- doar un
 // indiciu trimis catre server (watchdog pentru amenzi posibil dezactivate in
-// joc), nu afecteaza direct plata.
-const OVERSPEED_MARGIN_KMH = 8;
+// joc), nu afecteaza direct plata. Aliniat cu valoarea implicita a setarii
+// server "fines_off_overspeed_kmh" (vezi config.php) -- daca un admin schimba
+// pragul din site, watchdog-ul foloseste tot valoarea serverului la decizie,
+// dar acumularea locala trebuie sa ramana rezonabil de aproape de ea.
+const OVERSPEED_MARGIN_KMH = 10;
 
 function pct(v) {
   return typeof v === 'number' ? v * 100 : null;
