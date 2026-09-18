@@ -1,0 +1,78 @@
+name: Build EuroHaul Tracker (Electron, Windows)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Descarca codul
+        uses: actions/checkout@v4
+
+      - name: Instaleaza Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Instaleaza dependentele (compileaza si modulul nativ de telemetrie)
+        run: npm install
+
+      - name: Genereaza numarul de build
+        shell: pwsh
+        run: |
+          npm version --no-git-tag-version "1.0.${{ github.run_number }}"
+
+      - name: Construieste instalatorul (electron-builder)
+        run: npm run dist
+
+      - name: Gaseste fisierul instalatorului
+        id: find_installer
+        shell: pwsh
+        run: |
+          $file = Get-ChildItem -Path dist -Filter "*.exe" | Select-Object -First 1
+          if (-not $file) { throw "Nu am gasit niciun .exe in dist/ -- a esuat electron-builder?" }
+          Write-Host "Instalator gasit: $($file.FullName)"
+          echo "installer_path=$($file.FullName)" >> $env:GITHUB_OUTPUT
+          echo "installer_name=$($file.Name)" >> $env:GITHUB_OUTPUT
+
+      - name: Publica un GitHub Release cu instalatorul
+        shell: pwsh
+        run: |
+          $tag = "build-${{ github.run_number }}"
+          $title = "EuroHaul Tracker (build ${{ github.run_number }})"
+          $file = "${{ steps.find_installer.outputs.installer_path }}"
+
+          # Idempotent: daca release-ul exista deja (ex. re-run dupa un esec
+          # doar la incarcare), nu il recreem, trecem direct la upload.
+          gh release view $tag *> $null
+          $exists = ($LASTEXITCODE -eq 0)
+
+          if (-not $exists) {
+            Write-Host "Creez release nou pentru tag $tag..."
+            gh release create $tag --title $title --latest --notes "Build automat #${{ github.run_number }}"
+            if ($LASTEXITCODE -ne 0) { throw "gh release create a esuat (cod $LASTEXITCODE)" }
+          } else {
+            Write-Host "Release-ul $tag exista deja (probabil un re-run) - trec direct la upload."
+          }
+
+          # API-ul GitHub e uneori lent sa "vada" un release creat cu o clipa
+          # in urma -- reincercam explicit upload-ul, cu pauza intre incercari.
+          $maxAttempts = 5
+          $ok = $false
+          for ($i = 1; $i -le $maxAttempts; $i++) {
+            Write-Host "Incarc instalatorul (incercarea $i/$maxAttempts)..."
+            gh release upload $tag $file --clobber
+            if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+            Write-Host "Upload esuat (cod $LASTEXITCODE) - astept 10s inainte de reincercare..."
+            Start-Sleep -Seconds 10
+          }
+          if (-not $ok) { throw "Nu am putut incarca instalatorul dupa $maxAttempts incercari." }
+          Write-Host "Instalator incarcat cu succes pe release-ul $tag."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
