@@ -497,7 +497,7 @@ checkAuth();
 // Setari (culoare/pozitie/marime font bara)
 // ---------------------------------------------------------------------
 async function initSettings() {
-  const { values, accentPresets, positions, shortcuts, barFields } = await window.eurohaul.getSettings();
+  const { values, accentPresets, positions, shortcuts, barFields, soundFiles } = await window.eurohaul.getSettings();
 
   const swatchRow = document.getElementById('accent-swatches');
   const accentHint = document.getElementById('accent-hint');
@@ -568,6 +568,22 @@ async function initSettings() {
     onEl.addEventListener('change', () => window.eurohaul.setSetting(`alert_${key}_on`, onEl.checked));
     numEl.addEventListener('change', () => window.eurohaul.setSetting(`alert_${key}_${kind}`, parseInt(numEl.value, 10) || 0));
   }
+
+  // Ca la Trucky -- alegere dintr-un set de sunete existente in folderul
+  // "sounds", nu un singur fisier fix (overspeed.mp3).
+  const soundSelect = document.getElementById('alert-sound-select');
+  soundSelect.innerHTML = soundFiles.map((f) => `<option value="${f}">${f}</option>`).join('');
+  if (soundFiles.includes(values.alert_sound_file)) soundSelect.value = values.alert_sound_file;
+  soundSelect.addEventListener('change', async () => {
+    window.eurohaul.setSetting('alert_sound_file', soundSelect.value);
+    const audio = document.getElementById('alert-sound');
+    audio.src = await window.eurohaul.getOverspeedSoundPath();
+  });
+  document.getElementById('alert-sound-preview').addEventListener('click', () => {
+    const audio = document.getElementById('alert-sound');
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  });
 
   const hotkeysToggle = document.getElementById('hotkeys-enabled');
   hotkeysToggle.checked = !!values.hotkeys_enabled;

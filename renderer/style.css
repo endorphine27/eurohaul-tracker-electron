@@ -284,6 +284,17 @@ svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width:
   background: var(--bg-2); color: var(--text); font-size: 12px; font-family: Consolas, monospace;
 }
 
+.alert-select {
+  padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line);
+  background: var(--bg-2); color: var(--text); font-size: 12px; cursor: pointer;
+}
+.btn-preview {
+  width: 30px; height: 28px; border-radius: 6px; border: none;
+  background: var(--bg-2); color: var(--gold-br); font-size: 12px; cursor: pointer;
+  transition: background 0.12s ease;
+}
+.btn-preview:hover { background: var(--line); }
+
 .warn-text { color: var(--danger); font-size: 12px; font-weight: 600; }
 
 .tab-switch { display: flex; gap: 6px; }

@@ -34,4 +34,5 @@ contextBridge.exposeInMainWorld('eurohaul', {
     ipcRenderer.on('sound:play-overspeed', () => callback());
   },
   getOverspeedSoundPath: () => ipcRenderer.invoke('sound:getOverspeedPath'),
+  listSoundFiles: () => ipcRenderer.invoke('sound:listFiles'),
 });

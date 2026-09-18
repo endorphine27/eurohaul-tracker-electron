@@ -14,8 +14,10 @@ npm start
 
 ## Sunete de alertă
 
-Pune fișierul `overspeed.mp3` în folderul `sounds/` (vezi `sounds/README.txt`).
-După instalare, folderul rămâne accesibil lângă executabil, nu e împachetat.
+Ca la Trucky, aplicația alege dintr-un set de sunete existente în
+folderul `sounds/` (vezi `sounds/README.txt`) -- selecția se face din
+Setări → Alerte sonore de viteză. După instalare, folderul rămâne
+accesibil lângă executabil, nu e împachetat.
 
 ## Build (instalator Windows)
 

@@ -1,13 +1,9 @@
-Pune aici fișierul de sunet pentru alerta de depășire a vitezei, cu
-numele exact:
+Aici sunt sunetele disponibile pentru alerta de depășire a vitezei -- ca
+la Trucky, aplicația nu caută un singur fișier fix, ci listează automat
+tot ce găsește în folderul ăsta (.mp3 / .wav / .ogg), iar tu alegi din
+Setări → Alerte sonore de viteză → Sunet alertă care dintre ele să sune.
 
-    overspeed.mp3
-
-(format MP3 sau WAV, un beep scurt e suficient -- exact ca beep1.mp3/
-beep2.mp3 din Trucky). Dacă preferi alt format, actualizează calea din
-renderer/app.js (elementul <audio id="alert-sound">) și main/soundAlerts.js
-după caz.
-
-Dacă fișierul lipsește, aplicația nu se blochează -- pur și simplu nu se
-aude nimic la depășirea vitezei, dar restul alertei (verificarea limitei)
-funcționează normal.
+Poți adăuga fișiere noi aici sau poți șterge din cele existente -- lista
+din Setări se actualizează la următoarea pornire a aplicației. Dacă
+folderul rămâne complet gol, aplicația nu se blochează -- pur și simplu
+nu se aude nimic la depășirea vitezei.

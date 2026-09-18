@@ -18,6 +18,10 @@ const DEFAULTS = {
   alert_maxspeed_ets2_val: 90,
   alert_maxspeed_ats_on: false,
   alert_maxspeed_ats_val: 120,
+  // Ca la Trucky -- alege dintr-un set de sunete predefinite, nu un singur
+  // fisier fix; se completeaza real la prima citire (vezi listSoundFiles
+  // in main.js), asta e doar preferinta implicita.
+  alert_sound_file: 'beep3.mp3',
   hotkeys_enabled: true,
   // Ce informatii apar pe bara flotanta -- ca la Trucky, fiecare se poate
   // ascunde individual din Setari. Toate pornite implicit.

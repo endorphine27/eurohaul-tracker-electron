@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { startTelemetry } = require('./main/telemetry');
 const { createBarWindow } = require('./main/barWindow');
 const settingsStore = require('./main/settingsStore');
@@ -15,7 +16,26 @@ const { registerHotkeys, SHORTCUTS } = require('./main/hotkeys');
 // -- exact ca la Trucky, usor de gasit si de inlocuit de catre utilizator,
 // fara sa fie nevoie sa desfaca vreo arhiva.
 const soundsDir = app.isPackaged ? path.join(process.resourcesPath, 'sounds') : path.join(__dirname, 'sounds');
-const overspeedSoundPath = path.join(soundsDir, 'overspeed.mp3');
+const SOUND_EXTENSIONS = ['.mp3', '.wav', '.ogg'];
+
+// Ca la Trucky -- nu un singur fisier fix, ci un set de sunete din care
+// utilizatorul alege in Setari pe care il vrea pentru alerta de viteza.
+function listSoundFiles() {
+  try {
+    return fs.readdirSync(soundsDir)
+      .filter((f) => SOUND_EXTENSIONS.includes(path.extname(f).toLowerCase()))
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
+function overspeedSoundPath() {
+  const available = listSoundFiles();
+  const chosen = settingsStore.get('alert_sound_file');
+  const file = available.includes(chosen) ? chosen : available[0];
+  return file ? path.join(soundsDir, file) : null;
+}
 
 let mainWindow = null;
 let telemetryHandle = null;
@@ -64,7 +84,11 @@ ipcMain.handle('telemetry:getSnapshot', () => {
   return telemetryHandle ? telemetryHandle.getSnapshot() : { connected: false };
 });
 
-ipcMain.handle('sound:getOverspeedPath', () => `file://${overspeedSoundPath.replace(/\\/g, '/')}`);
+ipcMain.handle('sound:getOverspeedPath', () => {
+  const p = overspeedSoundPath();
+  return p ? `file://${p.replace(/\\/g, '/')}` : null;
+});
+ipcMain.handle('sound:listFiles', () => listSoundFiles());
 
 ipcMain.on('bar:open-settings', () => {
   if (!mainWindow || mainWindow.isDestroyed()) {
@@ -97,6 +121,7 @@ ipcMain.handle('settings:getAll', () => ({
   positions: POSITIONS,
   shortcuts: SHORTCUTS,
   barFields: settingsStore.BAR_FIELDS,
+  soundFiles: listSoundFiles(),
 }));
 
 // Vizibilitatea barei depinde de 2 lucruri independente: comutatorul

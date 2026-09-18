@@ -258,7 +258,14 @@
           </div>
           <input type="number" id="alert-maxspeed-ats-val" class="alert-num" min="0" max="200" /> <span class="muted-row">km/h</span>
         </div>
-        <div class="muted-row" style="margin-top:8px">Fișierul de sunet se pune în folderul „sounds” (vezi README).</div>
+        <div class="row-card" style="margin-top:10px">
+          <span>Sunet alertă</span>
+          <div style="display:flex; align-items:center; gap:8px">
+            <select id="alert-sound-select" class="alert-select"></select>
+            <button class="btn-preview" id="alert-sound-preview" title="Ascultă">▶</button>
+          </div>
+        </div>
+        <div class="muted-row" style="margin-top:8px">Poți adăuga sunete noi (.mp3/.wav) în folderul „sounds” — apar automat aici.</div>
       </div>
       <div class="card">
         <div class="section-label">Taste rapide</div>
