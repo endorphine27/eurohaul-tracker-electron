@@ -112,6 +112,9 @@ function normalize(d) {
     jobDeliveredRevenue: typeof d.jobDeliveredRevenue === 'bigint' ? Number(d.jobDeliveredRevenue) : null,
     jobDeliveredDistanceKm: typeof d.jobDeliveredDistanceKm === 'number' ? d.jobDeliveredDistanceKm : null,
     jobDeliveredCargoDamage: typeof d.jobDeliveredCargoDamage === 'number' ? d.jobDeliveredCargoDamage : null,
+    // Timp TOTAL petrecut pe job (in minute de joc) -- separat de timeAbsDelivery
+    // (care e ceasul-limita), folosit doar pt diagnosticarea "la timp/intarziat".
+    jobDeliveredDeliveryTime: typeof d.jobDeliveredDeliveryTime === 'number' ? d.jobDeliveredDeliveryTime : null,
     jobCancelled: !!d.jobCancelled,
     jobCancelledPenalty: typeof d.jobCancelledPenalty === 'bigint' ? Number(d.jobCancelledPenalty) : null,
     // Sloturile astea raman "agatate" in SDK dupa prima amenda (bug cunoscut,

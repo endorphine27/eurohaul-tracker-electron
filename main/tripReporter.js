@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const api = require('./api');
 const tripState = require('./tripState');
+const deliveryDebugLog = require('./deliveryDebugLog');
 
 // Reface exact ce facea versiunea Python (log_trip/log_sample/push_live_status/
 // log_fine), care lipsea complet din rescrierea Electron -- fara asta, contul
@@ -55,6 +56,7 @@ function createTripReporter({ getToken, telemetry, onTripStart, onTripDelivered 
   let fuelRefueled = 0;
   let lastFuelLevel = null;
   let pendingDelivery = null; // {revenue, distanceKm, cargoDamage} din tick-ul cu jobDelivered=true
+  let tripStartSnapshot = null; // vezi deliveryDebugLog -- valorile brute de la pornirea cursei
   let lastFineSig = null;
   let fineBaselinePrimed = false;
   let sampleTimer = null;
@@ -78,6 +80,15 @@ function createTripReporter({ getToken, telemetry, onTripStart, onTripDelivered 
     const token = getToken();
     if (!token || tripId) return;
     resetTripAccumulators();
+    // Vezi deliveryDebugLog.js -- comparam astea cu valorile de la livrare,
+    // ca sa intelegem exact cum calculeaza SDK-ul termenul limita.
+    tripStartSnapshot = {
+      realStartMs: Date.now(),
+      gameTimeMinutes: s.gameTimeMinutes,
+      timeAbsDelivery: s.timeAbsDelivery,
+      jobMarket: s.jobMarket,
+      routeFrom: s.routeFrom, routeTo: s.routeTo, cargo: s.cargo,
+    };
     const fields = {
       source_city: s.routeFrom,
       source_company: s.companyFrom,
@@ -254,6 +265,20 @@ function createTripReporter({ getToken, telemetry, onTripStart, onTripDelivered 
           ? s.gameTimeMinutes <= s.timeAbsDelivery
           : true,
       };
+      // TEMPORAR -- diagnosticare pt bug-ul "aparea intarziata desi a fost la
+      // timp". Vezi main/deliveryDebugLog.js. De scos dupa ce gasim fix-ul real.
+      deliveryDebugLog.save({
+        savedAt: new Date().toISOString(),
+        start: tripStartSnapshot,
+        delivery: {
+          realDeliveredMs: Date.now(),
+          gameTimeMinutes: s.gameTimeMinutes,
+          timeAbsDelivery: s.timeAbsDelivery,
+          jobDeliveredDeliveryTime: s.jobDeliveredDeliveryTime,
+          jobMarket: s.jobMarket,
+        },
+        computedOnTime: pendingDelivery.onTime,
+      });
     }
 
     // La fel ca in checkResume -- fara camion incarcat (meniu/incarcare, care
