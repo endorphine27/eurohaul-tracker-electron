@@ -1,10 +1,8 @@
 const bar = document.getElementById('bar');
 const dotEl = document.getElementById('dot');
 const textEl = document.getElementById('main-text');
-const gearEl = document.getElementById('gear');
 const signEl = document.getElementById('speed-sign');
-
-gearEl.addEventListener('click', () => window.eurohaulBar.openSettings());
+const speedValueEl = document.getElementById('speed-value');
 
 let vertical = false;
 let maxFont = 13;
@@ -20,6 +18,17 @@ let fields = {
   fuel_consumption: true, real_clock: true, wheel_lift: true, real_eta: true,
 };
 let showSpeedSign = true;
+// Ordinea "de fabrica" -- folosita cand inca n-a venit stilul din Setari si
+// ca rezerva pt orice camp lipsa din ordinea salvata (ex. adaugat intr-o
+// versiune ulterioara). Viteza NU e aici -- are pozitie fixa langa semnul de
+// limitare, nu se amesteca in restul textului (vezi updateSpeedValue).
+const DEFAULT_FIELD_ORDER = [
+  'time', 'real_clock', 'route', 'km_remaining', 'eta', 'real_eta', 'arrival_clock',
+  'cargo', 'job_income', 'fuel', 'fuel_range', 'fuel_consumption',
+  'truck_damage', 'trailer_damage', 'cargo_damage', 'trailer_name', 'odometer',
+  'rest', 'cruise_control', 'gear_rpm', 'brakes', 'lights', 'wheel_lift',
+];
+let fieldsOrder = DEFAULT_FIELD_ORDER.slice();
 
 window.eurohaulBar.onOrientation((orientation) => {
   vertical = orientation === 'vertical';
@@ -34,6 +43,7 @@ window.eurohaulBar.onStyle((style) => {
   if (typeof style.opacity === 'number') document.documentElement.style.setProperty('--bar-alpha', style.opacity);
   if (style.fontSize) maxFont = style.fontSize;
   if (style.fields) fields = style.fields;
+  if (Array.isArray(style.fieldsOrder)) fieldsOrder = style.fieldsOrder;
   if (typeof style.showSpeedLimitSign === 'boolean') showSpeedSign = style.showSpeedLimitSign;
   // Culoarea/mărimea fontului trebuie să se vadă IMEDIAT, nu doar la
   // următorul tick de telemetrie (care poate să nu vină deloc dacă jocul nu
@@ -82,6 +92,18 @@ function updateSpeedSign(s) {
   const over = typeof s.speedLimitKmh === 'number' && s.speedKmh - s.speedLimitKmh > 3;
   signEl.innerHTML = speedSignSvg(s.speedLimitKmh, over);
   signEl.style.display = '';
+}
+
+// Viteza curenta, langa semnul de limitare (nu in textul care circula cu
+// restul campurilor) -- pozitie fixa, ca sa le vezi pe amandoua dintr-o
+// privire: cat merg / cat am voie.
+function updateSpeedValue(s) {
+  if (!fields.speed || !s.connected || s.speedKmh === null) {
+    speedValueEl.style.display = 'none';
+    return;
+  }
+  speedValueEl.textContent = `${fmt(s.speedKmh)} km/h`;
+  speedValueEl.style.display = '';
 }
 
 // Treapta de mers: negativ = marsarier ("R1"), 0 = punct mort ("N").
@@ -145,53 +167,61 @@ function fmtMoney(amount, isAts) {
   return `${Math.round(amount).toLocaleString('ro-RO')}${isAts ? '$' : '€'}`;
 }
 
+// Un renderer per camp -- intoarce textul de afisat sau null daca nu se
+// aplica acum. Viteza nu e aici (pozitie fixa langa semn, vezi updateSpeedValue).
+const FIELD_RENDERERS = {
+  time: (s) => s.gameTimeMinutes !== null ? `🕒 ${fmtGameTime(s.gameTimeMinutes)}` : null,
+  real_clock: () => `⏰ ${fmtRealClock()}`,
+  route: (s) => s.onTrip ? `📍 ${s.routeFrom || '?'} → ${s.routeTo || '?'}` : null,
+  km_remaining: (s) => (s.onTrip && s.kmRemaining !== null) ? `🛣 ${fmt(s.kmRemaining)} km` : null,
+  eta: (s) => (s.onTrip && s.etaMinutes !== null) ? `🕐 ${fmtEta(s.etaMinutes)}` : null,
+  real_eta: (s) => (s.onTrip && s.realEtaMinutes !== null) ? `⏳ ${fmtEta(s.realEtaMinutes)}` : null,
+  arrival_clock: (s) => {
+    if (!s.onTrip) return null;
+    const arrival = fmtArrivalClock(s.gameTimeMinutes, s.etaMinutes);
+    return arrival ? `🏁 ${arrival}` : null;
+  },
+  cargo: (s) => (s.onTrip && s.cargo) ? `📦 ${s.cargo}` : null,
+  job_income: (s) => {
+    if (!s.onTrip) return null;
+    const income = fmtMoney(s.jobIncome, s.isAts);
+    return income ? `💰 ${income}` : null;
+  },
+  fuel: (s) => s.fuelPct !== null ? `⛽ ${s.fuelPct}%` : null,
+  fuel_range: (s) => s.fuelRangeKm !== null ? `🛢 ${fmt(s.fuelRangeKm)} km` : null,
+  fuel_consumption: (s) => s.fuelAvgConsumptionL100km !== null ? `📊 ${fmt(s.fuelAvgConsumptionL100km, 1)} l/100km` : null,
+  truck_damage: (s) => s.truckDamagePct !== null ? `🔧 ${s.truckDamagePct}%` : null,
+  trailer_damage: (s) => s.trailerDamagePct !== null ? `🚛 ${s.trailerDamagePct}%` : null,
+  cargo_damage: (s) => s.cargoDamagePct !== null ? `📉 ${s.cargoDamagePct}%` : null,
+  trailer_name: (s) => s.trailerName ? `🚚 ${s.trailerName}` : null,
+  odometer: (s) => s.odometerKm !== null ? `🧭 ${fmt(s.odometerKm)} km` : null,
+  rest: (s) => s.restMinutes !== null ? `😴 ${fmtEta(s.restMinutes)}` : null,
+  cruise_control: (s) => s.cruiseControl ? '✅ CC' : null,
+  gear_rpm: (s) => (s.gear !== null || s.rpm !== null)
+    ? `⚙️ ${fmtGear(s.gear)} · ${s.rpm !== null ? `${s.rpm} rpm` : '—'}` : null,
+  brakes: (s) => buildBrakes(s) || null,
+  lights: (s) => buildLights(s) || null,
+  wheel_lift: (s) => buildWheelLift(s) || null,
+};
+
+// Ordinea vine din Setari (fieldsOrder, actualizata pe masura ce activezi
+// campuri) -- orice camp lipsa de-acolo (ex. adaugat intr-o versiune noua,
+// inainte sa fi fost vreodata (re)activat manual) se adauga la coada, in
+// ordinea "de fabrica", ca sa nu dispara pur si simplu din bara.
 function buildParts(s) {
   const parts = [];
-  if (fields.time && s.gameTimeMinutes !== null) parts.push(`🕒 ${fmtGameTime(s.gameTimeMinutes)}`);
-  if (fields.real_clock) parts.push(`⏰ ${fmtRealClock()}`);
-  if (s.onTrip) {
-    if (fields.route) parts.push(`📍 ${s.routeFrom || '?'} → ${s.routeTo || '?'}`);
-    if (fields.km_remaining && s.kmRemaining !== null) parts.push(`🛣 ${fmt(s.kmRemaining)} km`);
-    if (fields.eta && s.etaMinutes !== null) parts.push(`🕐 ${fmtEta(s.etaMinutes)}`);
-    if (fields.real_eta && s.realEtaMinutes !== null) parts.push(`⏳ ${fmtEta(s.realEtaMinutes)}`);
-    if (fields.arrival_clock) {
-      const arrival = fmtArrivalClock(s.gameTimeMinutes, s.etaMinutes);
-      if (arrival) parts.push(`🏁 ${arrival}`);
-    }
-    if (fields.cargo && s.cargo) parts.push(`📦 ${s.cargo}`);
-    if (fields.job_income) {
-      const income = fmtMoney(s.jobIncome, s.isAts);
-      if (income) parts.push(`💰 ${income}`);
-    }
-  } else if (!parts.length) {
-    parts.push('Conectat');
+  const seen = new Set();
+  const orderedKeys = fieldsOrder.concat(DEFAULT_FIELD_ORDER.filter((k) => !fieldsOrder.includes(k)));
+  for (const key of orderedKeys) {
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (!fields[key]) continue;
+    const renderer = FIELD_RENDERERS[key];
+    if (!renderer) continue;
+    const text = renderer(s);
+    if (text) parts.push(text);
   }
-  if (fields.speed && s.speedKmh !== null) parts.push(`⏱ ${fmt(s.speedKmh)} km/h`);
-  if (fields.fuel && s.fuelPct !== null) parts.push(`⛽ ${s.fuelPct}%`);
-  if (fields.fuel_range && s.fuelRangeKm !== null) parts.push(`🛢 ${fmt(s.fuelRangeKm)} km`);
-  if (fields.fuel_consumption && s.fuelAvgConsumptionL100km !== null) parts.push(`📊 ${fmt(s.fuelAvgConsumptionL100km, 1)} l/100km`);
-  if (fields.truck_damage && s.truckDamagePct !== null) parts.push(`🔧 ${s.truckDamagePct}%`);
-  if (fields.trailer_damage && s.trailerDamagePct !== null) parts.push(`🚛 ${s.trailerDamagePct}%`);
-  if (fields.cargo_damage && s.cargoDamagePct !== null) parts.push(`📉 ${s.cargoDamagePct}%`);
-  if (fields.trailer_name && s.trailerName) parts.push(`🚚 ${s.trailerName}`);
-  if (fields.odometer && s.odometerKm !== null) parts.push(`🧭 ${fmt(s.odometerKm)} km`);
-  if (fields.rest && s.restMinutes !== null) parts.push(`😴 ${fmtEta(s.restMinutes)}`);
-  if (fields.cruise_control && s.cruiseControl) parts.push('✅ CC');
-  if (fields.gear_rpm && (s.gear !== null || s.rpm !== null)) {
-    parts.push(`⚙️ ${fmtGear(s.gear)} · ${s.rpm !== null ? `${s.rpm} rpm` : '—'}`);
-  }
-  if (fields.brakes) {
-    const brakes = buildBrakes(s);
-    if (brakes) parts.push(brakes);
-  }
-  if (fields.lights) {
-    const lights = buildLights(s);
-    if (lights) parts.push(lights);
-  }
-  if (fields.wheel_lift) {
-    const wl = buildWheelLift(s);
-    if (wl) parts.push(wl);
-  }
+  if (!parts.length) parts.push('Conectat');
   return parts;
 }
 
@@ -222,6 +252,7 @@ function render(s) {
   lastSnapshot = s;
   dotEl.classList.toggle('connected', !!s.connected);
   updateSpeedSign(s);
+  updateSpeedValue(s);
 
   if (!s.connected) {
     textEl.textContent = 'Aștept ETS2 sau ATS…';

@@ -111,15 +111,6 @@ ipcMain.handle('plugin:chooseFolderAndInstall', async () => {
   return pluginInstaller.installToChosenFolder(picked.filePaths[0], pluginPathOptions());
 });
 
-ipcMain.on('bar:open-settings', () => {
-  if (!mainWindow || mainWindow.isDestroyed()) {
-    createMainWindow();
-  }
-  mainWindow.show();
-  mainWindow.focus();
-  mainWindow.webContents.send('navigate', 'setari');
-});
-
 function fieldsFromSettings() {
   const fields = {};
   for (const f of settingsStore.BAR_FIELDS) {
@@ -149,6 +140,7 @@ function applyBarStyleFromSettings() {
     opacity,
     fontSize,
     fields: fieldsFromSettings(),
+    fieldsOrder: settingsStore.get('bar_fields_order'),
     showSpeedLimitSign: settingsStore.get('speed_limit_sign_on'),
   });
 }

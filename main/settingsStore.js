@@ -91,6 +91,13 @@ const BAR_FIELDS = [
   { key: 'real_eta', label: 'Timp real până la destinație (minute reale, din viteza medie)' },
 ];
 
+// Ordinea in care apar campurile pe bara -- incepe ca ordinea "de fabrica" de
+// mai sus, dar se schimba pe masura ce activezi campuri (vezi set() mai jos):
+// fiecare camp pe care-l ACTIVEZI (comutat pe pornit) trece la finalul listei,
+// ca sa apara ultimul din cele "proaspat" activate, in ordinea in care le-ai
+// pornit tu.
+DEFAULTS.bar_fields_order = BAR_FIELDS.map((f) => f.key);
+
 let cache = null;
 
 function filePath() {
@@ -127,6 +134,14 @@ function getAll() {
 
 function set(key, value) {
   load();
+  // Doar o ACTIVARE reala (era oprit, acum il pornesti) muta campul la
+  // finalul ordinii -- daca era deja pornit sau il opresti, ordinea ramane.
+  if (value === true && key.startsWith('bar_field_') && !cache[key]) {
+    const fieldKey = key.slice('bar_field_'.length);
+    const order = Array.isArray(cache.bar_fields_order) ? cache.bar_fields_order.filter((k) => k !== fieldKey) : [];
+    order.push(fieldKey);
+    cache.bar_fields_order = order;
+  }
   cache[key] = value;
   save();
 }
