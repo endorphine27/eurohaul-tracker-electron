@@ -119,11 +119,11 @@ function createTripReporter({ getToken, telemetry, onTripStart, onTripDelivered 
     if (delivered && typeof onTripDelivered === 'function') {
       try { onTripDelivered(s); } catch { /* ignoram */ }
     }
-    // "la timp" doar daca avem ambele repere de timp din SDK; altfel nu
-    // penalizam fara sa stim sigur.
-    const onTime = (delivered && typeof s.timeAbsDelivery === 'number' && typeof s.gameTimeMinutes === 'number')
-      ? s.gameTimeMinutes <= s.timeAbsDelivery
-      : true;
+    // "la timp" e deja calculat mai sus, chiar in tick-ul livrarii (vezi
+    // comentariul de la pendingDelivery) -- nu il recalculam aici cu date
+    // posibil invechite. Fara livrare reala (anulare), consideram "la timp"
+    // implicit, ca sa nu penalizam fara sa stim sigur.
+    const onTime = delivered ? delivered.onTime : true;
 
     const payload = {
       odometer_km: s.odometerKm,
@@ -239,12 +239,20 @@ function createTripReporter({ getToken, telemetry, onTripStart, onTripDelivered 
     lastTickAtMs = now;
 
     // SDK-ul tine cifrele finale doar 1 tick -- le prindem imediat si le
-    // folosim putin mai tarziu, cand onTrip chiar devine false.
+    // folosim putin mai tarziu, cand onTrip chiar devine false. La fel si
+    // pentru "la timp": timeAbsDelivery/gameTimeMinutes trebuie citite chiar
+    // ACUM, nu in handleTripEnd -- pana acolo ajunge sa treaca perioada de
+    // gratie (+ posibil ecranul de incarcare), timp in care jocul poate
+    // reseta/schimba aceste campuri, ducand la un "intarziata" gresit pentru
+    // o cursa livrata de fapt la timp.
     if (s.jobDelivered) {
       pendingDelivery = {
         revenue: s.jobDeliveredRevenue,
         distanceKm: s.jobDeliveredDistanceKm,
         cargoDamage: s.jobDeliveredCargoDamage,
+        onTime: (typeof s.timeAbsDelivery === 'number' && typeof s.gameTimeMinutes === 'number')
+          ? s.gameTimeMinutes <= s.timeAbsDelivery
+          : true,
       };
     }
 
