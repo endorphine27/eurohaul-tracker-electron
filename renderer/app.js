@@ -337,8 +337,17 @@ function renderCamion() {
   setText('camion-plate', truck.plate || 'fără număr');
   const fuelRow = document.getElementById('camion-fuel-row');
   if (fuelRow) {
-    if (truck.fuel_capacity_liters) {
-      setText('camion-fuel', `${truck.fuel_capacity_liters} L`);
+    // Preferam valorile LIVE din telemetrie (instant, se vede plinul imediat
+    // ce-l faci in joc) -- cele de pe server (truck.fuel_*) sunt doar
+    // rezerva, pt cand nu esti chiar acum in camionul atribuit.
+    const liveFuel = s.connected && typeof s.fuelLiters === 'number';
+    const liveCapacity = s.connected && typeof s.fuelCapacity === 'number' && s.fuelCapacity > 0;
+    const capacity = liveCapacity ? s.fuelCapacity : truck.fuel_capacity_liters;
+    if (liveFuel && capacity) {
+      setText('camion-fuel', `${Math.round(s.fuelLiters)} / ${Math.round(capacity)} L`);
+      fuelRow.style.display = '';
+    } else if (capacity) {
+      setText('camion-fuel', `${Math.round(capacity)} L (capacitate)`);
       fuelRow.style.display = '';
     } else {
       fuelRow.style.display = 'none';

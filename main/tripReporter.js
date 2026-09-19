@@ -315,6 +315,7 @@ function createTripReporter({ getToken, telemetry, onTripStart, onTripDelivered 
       km_remaining: s.kmRemaining, eta_minutes: s.etaMinutes,
       speed_kmh: s.speedKmh, speed_limit_kmh: s.speedLimitKmh,
       fuel_pct: s.fuelPct, odometer_km: s.odometerKm,
+      fuel_liters: s.fuelLiters,
       fuel_capacity_liters: s.fuelCapacity,
       rest_minutes: s.restMinutes,
       wear_engine_pct: pct(s.wearEngine),
