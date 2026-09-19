@@ -335,6 +335,15 @@ function renderCamion() {
 
   setText('camion-name', `${truck.brand || ''} ${truck.model || ''}`.trim() || '—');
   setText('camion-plate', truck.plate || 'fără număr');
+  const fuelRow = document.getElementById('camion-fuel-row');
+  if (fuelRow) {
+    if (truck.fuel_capacity_liters) {
+      setText('camion-fuel', `${truck.fuel_capacity_liters} L`);
+      fuelRow.style.display = '';
+    } else {
+      fuelRow.style.display = 'none';
+    }
+  }
 
   const wearFields = [
     ['engine', truck.wear_engine],
