@@ -20,12 +20,9 @@ const LIVE_STATUS_INTERVAL_MS = 2000;
 // pragul din site, watchdog-ul foloseste tot valoarea serverului la decizie,
 // dar acumularea locala trebuie sa ramana rezonabil de aproape de ea.
 const OVERSPEED_MARGIN_KMH = 10;
-// Vazut real la un sofer (curse #282/#283 identice, la 97s distanta): la
-// inchiderea jocului, SDK-ul pare sa goleasca datele jobului (ruta/marfa)
-// CU O CLIPA inainte sa marcheze telemetria ca deconectata -- fara asta,
-// tracker-ul citea acel moment tranzitoriu drept "cursa s-a terminat",
-// inchidea cursa reala si pornea una noua identica la redeschiderea jocului.
-// Nu consideram cursa terminata decat daca "fara job" persista macar atat.
+// Rezerva scurta pt un eventual sughit real de telemetrie CAT ESTI DEJA in
+// camion (vezi TRUCK_BRAND-gate mai jos, care e apararea principala) -- nu
+// pentru ecranul de incarcare, care poate dura mult mai mult de atat.
 const TRIP_END_GRACE_MS = 5000;
 
 function pct(v) {
@@ -66,7 +63,6 @@ function createTripReporter({ getToken, telemetry, onTripStart, onTripDelivered 
   // -- verificata O SINGURA DATA, la primul tick conectat de dupa start().
   let resumeCandidate = null;
   let resumeChecked = true;
-  let resumeDeadline = null;
   let pendingEndAt = null;
 
   function resetTripAccumulators() {
@@ -199,39 +195,31 @@ function createTripReporter({ getToken, telemetry, onTripStart, onTripDelivered 
   // nimic; daca nu (livrata/anulata/alt job cat timp am fost inchisi),
   // inchidem best-effort cursa orfana pe server ca sa nu ramana agatata la
   // nesfarsit in "in_progress".
-  function checkResume(s, now) {
+  function checkResume(s) {
     if (!resumeCandidate) { resumeChecked = true; return; }
-    if (s.onTrip) {
-      // Avem un job activ CHIAR ACUM -- decidem imediat, nu mai asteptam.
-      resumeChecked = true;
-      const rc = resumeCandidate;
-      resumeCandidate = null;
-      if (buildTripFingerprint(s) === rc.fingerprint) {
-        tripId = rc.tripId;
-        wasOnTrip = true;
-        console.log('[tripReporter] cursa reluata dupa restart tracker, trip_id=', tripId);
-      } else {
-        const token = getToken();
-        if (token) api.endTrip(token, rc.tripId, { delivery_status: 'cancelled' }).catch(() => {});
-      }
-      return;
-    }
-    // Fara job chiar acum -- poate fi doar jocul care inca nu si-a incarcat
-    // salvarea (pornire lenta). Asteptam aceeasi perioada de gratie ca la
-    // sfarsitul normal de cursa inainte sa consideram cursa persistata orfana.
-    if (resumeDeadline === null) { resumeDeadline = now + TRIP_END_GRACE_MS; return; }
-    if (now < resumeDeadline) return;
+    // `sdkActive` (s.connected) e adevarat din momentul in care JOCUL
+    // PORNESTE -- ramane asa tot meniul principal si tot ecranul de
+    // incarcare a salvarii (poate dura peste un minut), cu mult inainte sa
+    // ajungi efectiv in cabina. Pana atunci `s.truckBrand` e gol, iar
+    // `s.onTrip` nu inseamna nimic real -- asteptam sa vedem un camion.
+    if (!s.truckBrand) return;
     resumeChecked = true;
     const rc = resumeCandidate;
     resumeCandidate = null;
-    const token = getToken();
-    if (token) api.endTrip(token, rc.tripId, { delivery_status: 'cancelled' }).catch(() => {});
+    if (s.onTrip && buildTripFingerprint(s) === rc.fingerprint) {
+      tripId = rc.tripId;
+      wasOnTrip = true;
+      console.log('[tripReporter] cursa reluata dupa restart tracker, trip_id=', tripId);
+    } else {
+      const token = getToken();
+      if (token) api.endTrip(token, rc.tripId, { delivery_status: 'cancelled' }).catch(() => {});
+    }
   }
 
   function onTick(s) {
     if (!running || !s.connected) return;
     const now = Date.now();
-    if (!resumeChecked) checkResume(s, now);
+    if (!resumeChecked) checkResume(s);
 
     handleFineCheck(s).catch(() => {});
 
@@ -259,6 +247,11 @@ function createTripReporter({ getToken, telemetry, onTripStart, onTripDelivered 
         cargoDamage: s.jobDeliveredCargoDamage,
       };
     }
+
+    // La fel ca in checkResume -- fara camion incarcat (meniu/incarcare, care
+    // poate dura mult) "fara job" nu inseamna nimic. Nu atingem nimic pana nu
+    // vedem un camion real, indiferent cat dureaza asta.
+    if (!s.truckBrand) return;
 
     if (s.onTrip) {
       pendingEndAt = null; // orice "sfarsit" suspectat anterior nu se mai confirma
@@ -341,7 +334,6 @@ function createTripReporter({ getToken, telemetry, onTripStart, onTripDelivered 
     // daca jobul din joc chiar se potriveste cu cel salvat.
     resumeCandidate = tripState.load();
     resumeChecked = !resumeCandidate;
-    resumeDeadline = null;
     pendingEndAt = null;
     resetTripAccumulators();
     lastFineSig = null;
